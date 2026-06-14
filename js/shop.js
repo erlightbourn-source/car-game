@@ -229,6 +229,17 @@ const Shop = (() => {
       load();
     },
     claimDailyBonus, streakInfo,
+    // Flip the equipped car to the prev/next OWNED design (Garage arrows / keys).
+    cycleDesign(dir) {
+      const owned = DESIGNS.filter((d) => data.designOwned.indexOf(d.id) >= 0);
+      if (owned.length < 2) return false;
+      let i = owned.findIndex((d) => d.id === data.design);
+      if (i < 0) i = 0;
+      i = (i + dir + owned.length) % owned.length;
+      data.design = owned[i].id;
+      persist(); onChange(); onSelect(); renderGarage();
+      return true;
+    },
     flush() { if (saveTimer) persist(); },   // force-write any pending coins (page hide)
     get coins() { return data.coins; },
     get best() { return data.best; },

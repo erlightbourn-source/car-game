@@ -120,14 +120,26 @@
     else if (engine.state === "dead" && performance.now() - deadAt > 350) beginGame();
   }
 
-  // --- Input: swipe + tap --------------------------------------------------
+  // --- Input: swipe + tap (+ drag-to-rotate in showcase) -------------------
   const SWIPE_PX = 28;
-  let downX = 0, downY = 0, tracking = false;
+  let downX = 0, downY = 0, lastX = 0, tracking = false, draggedShowcase = false;
   canvas.addEventListener("pointerdown", (e) => {
-    e.preventDefault(); downX = e.clientX; downY = e.clientY; tracking = true;
+    e.preventDefault(); downX = lastX = e.clientX; downY = e.clientY; tracking = true; draggedShowcase = false;
+    if (renderer.showcase) renderer.setDragging(true);
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!tracking || !renderer.showcase) return;
+    renderer.dragBy(e.clientX - lastX); lastX = e.clientX;
+    if (Math.abs(e.clientX - downX) > 6) draggedShowcase = true;
   });
   canvas.addEventListener("pointerup", (e) => {
     if (!tracking) return; tracking = false;
+    // In the Garage / start screen the car is a draggable turntable.
+    if (renderer.showcase) {
+      renderer.setDragging(false);
+      if (!draggedShowcase) confirmAction();   // a tap (not a drag) → play; no-op in Garage
+      return;
+    }
     const dx = e.clientX - downX, dy = e.clientY - downY;
     if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(dy)) {
       steer(dx < 0 ? -1 : 1);
@@ -138,7 +150,7 @@
       confirmAction();
     }
   });
-  canvas.addEventListener("pointercancel", () => { tracking = false; });
+  canvas.addEventListener("pointercancel", () => { tracking = false; renderer.setDragging(false); });
 
   elStart.addEventListener("pointerdown", (e) => { if (e.target === elStart) confirmAction(); });
   elOver.addEventListener("pointerdown", (e) => { if (e.target === elOver) confirmAction(); });
@@ -148,12 +160,14 @@
   $("garage-btn").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); showShop(); });
   $("over-garage-btn").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); showShop(); });
   $("shop-back").addEventListener("click", (e) => { e.stopPropagation(); showStart(); });
+  $("garage-prev").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); Shop.cycleDesign(-1); });
+  $("garage-next").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); Shop.cycleDesign(1); });
 
   // --- Input: keyboard -----------------------------------------------------
   window.addEventListener("keydown", (e) => {
     switch (e.code) {
-      case "ArrowLeft": case "KeyA":  e.preventDefault(); steer(-1); break;
-      case "ArrowRight": case "KeyD": e.preventDefault(); steer(1); break;
+      case "ArrowLeft": case "KeyA":  e.preventDefault(); if (ui === "shop") Shop.cycleDesign(-1); else steer(-1); break;
+      case "ArrowRight": case "KeyD": e.preventDefault(); if (ui === "shop") Shop.cycleDesign(1); else steer(1); break;
       case "Space": case "Enter":     e.preventDefault(); confirmAction(); break;
       case "Escape":                  if (ui === "shop") showStart(); break;
       case "KeyM":                    toggleMute(); break;

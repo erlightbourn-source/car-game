@@ -710,8 +710,13 @@ class Renderer {
       if (this.car) { this.car.rotation.set(0, 0, 0); this.car.position.set(0, 0, 0); }
     }
   }
+  // Manual turntable drag (Garage): rotate by pointer delta; auto-spin pauses.
+  dragBy(dxPx) { this._spin = (this._spin || 0) + dxPx * 0.012; }
+  setDragging(b) { this._dragging = b; }
+
   _renderShowcase(dt) {
-    this._spin = (this._spin || 0) + dt * 0.6;
+    if (this._spin === undefined) this._spin = 0;
+    if (!this._dragging) this._spin += dt * 0.6;   // idle auto-spin (paused while dragging)
     this.car.position.set(0, 0, 0);
     this.car.rotation.set(0, this._spin, 0);
     if (this.wheels) for (const w of this.wheels) w.rotation.x -= dt * 0.35;
