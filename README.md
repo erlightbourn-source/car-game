@@ -66,13 +66,22 @@ no jumping. Dodge everything; one hit ends the run (unless you have a shield).
 
 ### Coins & the Garage 🔧
 
-- Grab the gold coins on the road — they bank automatically and persist between
-  sessions.
-- Open the **Garage** (from the start or game-over screen) to spend them:
-  - **Car colours** — Ruby (free), Sky, Mint, Grape, Goldie. Buy once, then equip.
-  - **🧲 Coin Magnet** (3 levels) — pulls coins in from neighbouring lanes.
-  - **🛡️ Shield** (3 levels) — each level lets you absorb one crash per run and
-    keep driving (with a brief flash of invulnerability).
+Grab the gold coins on the road — they bank automatically and persist between
+sessions. Open the **Garage** (from the start or game-over screen) to spend them.
+It's tabbed:
+
+- **🎨 Paint** — 7 body colours (Ruby free, Sky, Mint, Grape, Goldie, Onyx, Pearl).
+- **🚗 Body** — 4 car designs: Hatch (free), Sport (spoiler), Pickup (open bed),
+  Classic (rounded retro). Each is a different 3D model.
+- **💡 Lights** — 6 taillight colours (Classic red free, Ice, Lime, Amber, Violet,
+  Pearl) — they glow in the dark worlds.
+- **🌅 World** — 5 backgrounds: Sunny Day (free), Sunset, Night, Winter, Desert.
+  Each changes the sky, fog, sun, lighting and ground.
+- **⚙️ Perks** — 🧲 Coin Magnet (3 levels, pulls in nearby coins) and 🛡️ Shield
+  (3 levels, absorb a crash and keep driving).
+
+Buy once, then equip; selections apply instantly to the 3D car/world and persist.
+Owned items, equipped choices, coins and best score all save via `localStorage`.
 
 ---
 

@@ -277,4 +277,36 @@ h1 {
 .upg-buy.locked { background: #c2c8cf; box-shadow: 0 4px 0 #a4abb3; cursor: not-allowed; }
 .upg-max { font-size: 15px; font-weight: bold; color: #3ec98a; padding: 0 10px; }
 
+/* ---------- Garage tabs + item grid ---------- */
+.tabs {
+  display: flex; gap: 4px; flex-wrap: wrap; justify-content: center;
+  margin: 10px 0 12px;
+}
+.tab {
+  font-family: inherit; font-size: 12px; font-weight: bold;
+  padding: 7px 9px; border: none; border-radius: 10px;
+  background: #e7edf3; color: #5a6b7a; cursor: pointer;
+}
+.tab.active { background: var(--accent); color: #fff; box-shadow: 0 3px 0 var(--accent-dark); }
+
+.shop-items {
+  max-height: 46vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 2px; margin-bottom: 6px;
+}
+.item-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  border: 3px solid #fff; border-radius: 14px; background: #f4f7fa;
+  padding: 10px 4px 6px; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.1);
+  transition: transform 0.08s;
+}
+.item:active { transform: scale(0.95); }
+.item.equipped { border-color: #2c3e50; box-shadow: 0 0 0 3px #ffd23f, 0 3px 0 rgba(0,0,0,0.1); }
+.item.locked { filter: grayscale(0.5) brightness(0.96); }
+.item .chip { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+.item .emoji { font-size: 34px; line-height: 40px; }
+.item-name { font-size: 13px; font-weight: bold; color: #2c3e50; }
+.item-tag { font-size: 12px; font-weight: bold; color: #5a6b7a; background: #fff; border-radius: 8px; padding: 1px 7px; }
+.item.equipped .item-tag { color: #fff; background: #2c3e50; }
+
 .hidden { display: none !important; }

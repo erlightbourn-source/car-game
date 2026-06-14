@@ -57,11 +57,58 @@ const CONFIG = {
   INVULN_TIME: 0.9,      // seconds of invulnerability after a shield absorbs a hit
 };
 
-// Selectable car bodies. Cosmetic only; `price` 0 means owned by default.
+// ---- Customization catalogs (all coin-priced; price 0 = owned by default) ----
+
+// PAINT — body colour. (Kept as `CARS` for back-compat.)
 const CARS = [
   { id: "red",    name: "Ruby",   price: 0,   body: "#ff5b6e", roof: "#ff7286", bumper: "#e8485b" },
   { id: "blue",   name: "Sky",    price: 60,  body: "#4aa3ff", roof: "#6fb6ff", bumper: "#3b86db" },
   { id: "green",  name: "Mint",   price: 120, body: "#3ec98a", roof: "#5fd9a1", bumper: "#33a873" },
   { id: "purple", name: "Grape",  price: 220, body: "#9b6cff", roof: "#b288ff", bumper: "#7f53db" },
   { id: "gold",   name: "Goldie", price: 450, body: "#ffcf3f", roof: "#ffe07a", bumper: "#e0ad1f" },
+  { id: "black",  name: "Onyx",   price: 300, body: "#3a3f49", roof: "#4a505c", bumper: "#2a2e36" },
+  { id: "white",  name: "Pearl",  price: 260, body: "#eef2f7", roof: "#ffffff", bumper: "#cfd6df" },
+];
+
+// DESIGN — car body shape (drawn procedurally by the renderer per id).
+const DESIGNS = [
+  { id: "hatch",   name: "Hatch",   price: 0 },
+  { id: "sport",   name: "Sport",   price: 200 },
+  { id: "pickup",  name: "Pickup",  price: 300 },
+  { id: "classic", name: "Classic", price: 400 },
+];
+
+// LIGHTS — taillight colour (base colour + emissive glow colour).
+const LIGHTS = [
+  { id: "red",    name: "Classic", price: 0,   color: 0xff2e2e, emissive: 0xff2020 },
+  { id: "ice",    name: "Ice",     price: 90,  color: 0x53d2ff, emissive: 0x33b8ff },
+  { id: "lime",   name: "Lime",    price: 120, color: 0x9bff5a, emissive: 0x6fdd2f },
+  { id: "amber",  name: "Amber",   price: 110, color: 0xffc24a, emissive: 0xff9e1f },
+  { id: "violet", name: "Violet",  price: 160, color: 0xc36bff, emissive: 0xa23cff },
+  { id: "pearl",  name: "Pearl",   price: 200, color: 0xffffff, emissive: 0xfff2d0 },
+];
+
+// BACKGROUND — the world/theme. Each carries lighting + colour parameters that
+// the renderer applies to the sky, fog, sun, ambient light, sun glow and grass.
+const BACKGROUNDS = [
+  { id: "day", name: "Sunny Day", price: 0,
+    sky: [0x2f86d8, 0x8fc6f0, 0xd7eef8], fog: 0x9fc8e6, fogNear: 48, fogFar: 195,
+    hemiSky: 0xbfe0ff, hemiGround: 0x6a8f4e, hemiInt: 0.55,
+    sun: 0xfff1cf, sunInt: 2.5, sunDir: [-0.45, 0.62, -0.7], grass: 0x6bbf4f, glow: "#fff6c6" },
+  { id: "sunset", name: "Sunset", price: 150,
+    sky: [0xff7330, 0xffa867, 0xffe1b4], fog: 0xffac7a, fogNear: 38, fogFar: 175,
+    hemiSky: 0xffc59a, hemiGround: 0x5a4030, hemiInt: 0.5,
+    sun: 0xff8a45, sunInt: 2.3, sunDir: [-0.75, 0.2, -0.55], grass: 0x9a9a52, glow: "#ffce86" },
+  { id: "night", name: "Night", price: 280,
+    sky: [0x081130, 0x162250, 0x2c3a66], fog: 0x141e3a, fogNear: 32, fogFar: 150,
+    hemiSky: 0x44548a, hemiGround: 0x0f1320, hemiInt: 0.4,
+    sun: 0xaebfff, sunInt: 0.8, sunDir: [0.4, 0.55, -0.6], grass: 0x29463a, glow: "#cdd8ff" },
+  { id: "snow", name: "Winter", price: 240,
+    sky: [0x6f9bca, 0xaecbe8, 0xe7f2fc], fog: 0xdde9f6, fogNear: 40, fogFar: 175,
+    hemiSky: 0xe2efff, hemiGround: 0xa6b6c6, hemiInt: 0.7,
+    sun: 0xfdfaf2, sunInt: 2.2, sunDir: [-0.4, 0.55, -0.7], grass: 0xeaf2fb, glow: "#ffffff" },
+  { id: "desert", name: "Desert", price: 200,
+    sky: [0x3f9fe0, 0x9fd0ef, 0xf0e6c8], fog: 0xe6d6a8, fogNear: 44, fogFar: 200,
+    hemiSky: 0xe9dcae, hemiGround: 0x7a6440, hemiInt: 0.6,
+    sun: 0xfff0c0, sunInt: 2.7, sunDir: [-0.5, 0.6, -0.65], grass: 0xd9c489, glow: "#fff3c8" },
 ];

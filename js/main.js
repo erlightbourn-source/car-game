@@ -14,6 +14,7 @@
   try {
     renderer = new Renderer(canvas, CONFIG);
   } catch (err) {
+    console.error("Renderer init failed:", err);
     const wrap = document.getElementById("game-wrap");
     document.querySelectorAll(".screen").forEach((s) => s.classList.add("hidden"));
     const msg = document.createElement("div");
@@ -40,11 +41,19 @@
   function refreshLabels() {
     $("start-best").textContent = Shop.best;
     $("start-coins").textContent = Shop.coins;
-    renderer.setCar(Shop.equippedColors());
   }
-  Shop.init({ onChange: refreshLabels });
+  // Push every equipped customization (paint, body design, lights, world) to the
+  // 3D scene. Order matters: set paint/light first so a design rebuild picks them up.
+  function applyCustomization() {
+    renderer.setLights(Shop.equippedLight());
+    renderer.setCar(Shop.equippedColors());
+    renderer.setDesign(Shop.equippedDesign());
+    renderer.setBackground(Shop.equippedBackground());
+  }
+  function onShopChange() { refreshLabels(); applyCustomization(); }
+  Shop.init({ onChange: onShopChange });
   engine.best = Shop.best;
-  renderer.setCar(Shop.equippedColors());
+  applyCustomization();
 
   // --- Screen state machine ------------------------------------------------
   let ui = "start";          // "start" | "shop" | "playing" | "over"
@@ -77,7 +86,7 @@
     engine.best = Shop.best;
     engine.reset();
     engine.start();
-    renderer.setCar(Shop.equippedColors());
+    applyCustomization();
     Sfx.unlock(); Sfx.engineStart();
     showPlaying();
   }

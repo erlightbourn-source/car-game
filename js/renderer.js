@@ -21,6 +21,8 @@ class Renderer {
     this.canvas = canvas;
     this.camShift = 0;                 // kept for API compatibility (unused in 3D)
     this.carColors = { body: "#ff5b6e", roof: "#ff7286", bumper: "#e8485b" };
+    this.carDesign = "hatch";          // current body shape
+    this.lightDef = LIGHTS[0];         // current taillight colour
 
     // --- World scale ---
     this.LANE_W = 3.05;                // metres between lane centres ≈ 2*0.62 mapping below
@@ -123,6 +125,7 @@ class Renderer {
         void main(){ float h = normalize(vP).y; vec3 c = h>0.0 ? mix(mid,top,pow(h,0.55)) : mix(mid,bot,pow(-h,0.5)); gl_FragColor=vec4(c,1.0);} `,
     });
     scene.add(new THREE.Mesh(skyGeo, skyMat));
+    this.skyMat = skyMat;
 
     // Sun disc + glow sprite
     const sunDir = new THREE.Vector3(-0.45, 0.55, -0.7).normalize();
@@ -131,6 +134,7 @@ class Renderer {
     glow.scale.set(120, 120, 1);
     glow.position.copy(sunPos);
     scene.add(glow);
+    this.sunGlow = glow;
 
     // Image-based lighting JUST for shiny surfaces (car paint, glass, coins).
     // Not assigned as scene.environment so it doesn't flood matte surfaces.
@@ -143,9 +147,11 @@ class Renderer {
     // Lights ----------------------------------------------------------------
     const hemi = new THREE.HemisphereLight(0xbfe0ff, 0x4c6b38, 0.5);
     scene.add(hemi);
+    this.hemi = hemi;
 
     const sun = new THREE.DirectionalLight(0xfff1cf, 2.5);
     sun.position.copy(sunPos.clone().setLength(60));
+    this.sun = sun;
     sun.castShadow = true;
     sun.shadow.mapSize.set(this.isMobile ? 1024 : 2048, this.isMobile ? 1024 : 2048);
     const sc = sun.shadow.camera;
@@ -161,14 +167,36 @@ class Renderer {
     grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
     grassTex.repeat.set(60, 200);
     this.grassTex = grassTex;
-    const grass = new THREE.Mesh(
-      new THREE.PlaneGeometry(600, 800),
-      new THREE.MeshStandardMaterial({ map: grassTex, bumpMap: grassTex, bumpScale: 0.06, roughness: 1, metalness: 0 })
-    );
+    // Neutral-tinted base so the background theme can colour the field (green,
+    // sand, snow…) via the material colour.
+    const grassMat = new THREE.MeshStandardMaterial({ map: grassTex, bumpMap: grassTex, bumpScale: 0.06, roughness: 1, metalness: 0, color: 0x6bbf4f });
+    this.grassMat = grassMat;
+    const grass = new THREE.Mesh(new THREE.PlaneGeometry(600, 800), grassMat);
     grass.rotation.x = -Math.PI / 2;
     grass.position.set(0, -0.02, -200);
     grass.receiveShadow = true;
     scene.add(grass);
+  }
+
+  // Apply a background theme (sky / fog / sun / ambient / grass tint).
+  setBackground(bg) {
+    if (!bg) return;
+    this.skyMat.uniforms.top.value.set(bg.sky[0]);
+    this.skyMat.uniforms.mid.value.set(bg.sky[1]);
+    this.skyMat.uniforms.bot.value.set(bg.sky[2]);
+    this.fogColor.set(bg.fog);
+    this.scene.fog.color.set(bg.fog);
+    this.scene.fog.near = bg.fogNear; this.scene.fog.far = bg.fogFar;
+    this.hemi.color.set(bg.hemiSky);
+    this.hemi.groundColor.set(bg.hemiGround);
+    this.hemi.intensity = bg.hemiInt;
+    this.sun.color.set(bg.sun);
+    this.sun.intensity = bg.sunInt;
+    const dir = new THREE.Vector3(bg.sunDir[0], bg.sunDir[1], bg.sunDir[2]).normalize();
+    this.sun.position.copy(dir.clone().multiplyScalar(60));
+    this.sunGlow.position.copy(dir.clone().multiplyScalar(380));
+    this.sunGlow.material.color.set(bg.glow);
+    this.grassMat.color.set(bg.grass).convertSRGBToLinear();
   }
 
   _buildRoad() {
@@ -212,37 +240,15 @@ class Renderer {
     bodyMat.color.convertSRGBToLinear();
     const glassMat = new THREE.MeshStandardMaterial({ color: 0x0e151c, metalness: 0.9, roughness: 0.08, envMap: this.envTex, envMapIntensity: 0.95 });
     const tyreMat = new THREE.MeshStandardMaterial({ color: 0x111317, metalness: 0.1, roughness: 0.85 });
-    const tailMat = new THREE.MeshStandardMaterial({ color: 0xff2e2e, emissive: 0xff2020, emissiveIntensity: 1.4, roughness: 0.4 });
+    const tailMat = new THREE.MeshStandardMaterial({ color: this.lightDef.color, emissive: this.lightDef.emissive, emissiveIntensity: 1.4, roughness: 0.4 });
     const trimMat = new THREE.MeshStandardMaterial({ color: 0x2a2d33, metalness: 0.5, roughness: 0.5 });
     this.carParts.bodyMat = bodyMat;
+    this.tailMat = tailMat;
 
-    // Painted lower body — extruded side profile (shape's x = length, extruded
-    // along width), beveled for rounded edges, then rotated so length → world Z.
-    const lb = new THREE.Shape();
-    lb.moveTo(-1.95, 0.30); lb.lineTo(-1.95, 0.52);
-    lb.quadraticCurveTo(-1.86, 0.66, -1.45, 0.70);
-    lb.lineTo(1.5, 0.70);
-    lb.quadraticCurveTo(1.9, 0.66, 1.97, 0.52);
-    lb.lineTo(1.97, 0.30); lb.closePath();
-    const lbGeo = new THREE.ExtrudeGeometry(lb, { depth: 2.0, bevelEnabled: true, bevelThickness: 0.10, bevelSize: 0.10, bevelSegments: 3, steps: 1 });
-    lbGeo.translate(0, 0, -1.0);
-    const lower = new THREE.Mesh(lbGeo, bodyMat);
-    lower.rotation.y = -Math.PI / 2; lower.castShadow = true; lower.receiveShadow = true; g.add(lower);
+    // Design-specific painted body + glass greenhouse.
+    this._buildBody(this.carDesign, bodyMat, glassMat, trimMat, g);
 
-    // Glass greenhouse: windshield → roof → rear window. Narrower than the body
-    // so the painted body frames it like pillars.
-    const gh = new THREE.Shape();
-    gh.moveTo(-0.45, 0.66);
-    gh.quadraticCurveTo(-0.18, 0.74, 0.02, 1.38);
-    gh.quadraticCurveTo(0.10, 1.46, 0.55, 1.46);
-    gh.quadraticCurveTo(0.98, 1.44, 1.26, 0.80);
-    gh.lineTo(1.30, 0.66); gh.closePath();
-    const ghGeo = new THREE.ExtrudeGeometry(gh, { depth: 1.5, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2, steps: 1 });
-    ghGeo.translate(0, 0, -0.75);
-    const cabin = new THREE.Mesh(ghGeo, glassMat);
-    cabin.rotation.y = -Math.PI / 2; cabin.castShadow = true; g.add(cabin);
-
-    // Rear bumper + licence plate
+    // ---- Shared parts (same footprint for every design) ----
     const bumper = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.22, 0.2), trimMat);
     bumper.position.set(0, 0.4, 1.98); g.add(bumper);
     const plate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.18, 0.04),
@@ -264,22 +270,20 @@ class Renderer {
     }
 
     // Side mirrors
-    const mirrorMat = bodyMat;
     for (const sx of [-1, 1]) {
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.08), mirrorMat);
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.08), bodyMat);
       arm.position.set(sx * 1.02, 1.0, -0.95); g.add(arm);
       const glassM = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.18, 0.22), glassMat);
       glassM.position.set(sx * 1.14, 1.0, -0.95); g.add(glassM);
     }
 
-    // Taillights — sit just proud of the rear surface so they're clearly visible.
+    // Taillights (colour customizable) — just proud of the rear surface.
     const tlGeo = new THREE.BoxGeometry(0.42, 0.18, 0.06);
     for (const sx of [-1, 1]) {
       const tl = new THREE.Mesh(tlGeo, tailMat);
       tl.position.set(sx * 0.72, 0.62, 2.04);
       g.add(tl);
     }
-    // headlights (front, white)
     const hlMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff2c0, emissiveIntensity: 0.8 });
     for (const sx of [-1, 1]) {
       const hl = new THREE.Mesh(tlGeo, hlMat);
@@ -292,10 +296,112 @@ class Renderer {
     this.scene.add(g);
   }
 
+  // Extrude a side-profile shape (x = length) along width, bevel it, and rotate
+  // so the car's length runs along world Z.
+  _profileMesh(shape, depth, bevel, mat) {
+    const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 3, steps: 1 });
+    geo.translate(0, 0, -depth / 2);
+    const m = new THREE.Mesh(geo, mat);
+    m.rotation.y = -Math.PI / 2; m.castShadow = true; m.receiveShadow = true;
+    return m;
+  }
+
+  _buildBody(design, bodyMat, glassMat, trimMat, g) {
+    if (design === "pickup") {
+      // Boxy truck: chassis + cab (front) + open bed (rear) with walls & tailgate.
+      const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.4, 3.9), bodyMat);
+      chassis.position.set(0, 0.5, 0.0); chassis.castShadow = true; g.add(chassis);
+      const cab = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.54, 1.5), bodyMat);
+      cab.position.set(0, 0.97, -0.75); cab.castShadow = true; g.add(cab);
+      const cabGlass = new THREE.Mesh(new THREE.BoxGeometry(1.74, 0.42, 1.24), glassMat);
+      cabGlass.position.set(0, 1.0, -0.72); g.add(cabGlass);
+      for (const sx of [-1, 1]) {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.34, 1.7), bodyMat);
+        wall.position.set(sx * 0.94, 0.87, 0.95); wall.castShadow = true; g.add(wall);
+      }
+      const tail = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.34, 0.12), bodyMat);
+      tail.position.set(0, 0.87, 1.78); tail.castShadow = true; g.add(tail);
+      return;
+    }
+
+    const lb = new THREE.Shape(), gh = new THREE.Shape();
+
+    if (design === "sport") {
+      lb.moveTo(-2.0, 0.26); lb.lineTo(-2.0, 0.46);
+      lb.quadraticCurveTo(-1.9, 0.58, -1.4, 0.62); lb.lineTo(1.5, 0.62);
+      lb.quadraticCurveTo(1.92, 0.58, 2.0, 0.46); lb.lineTo(2.0, 0.26); lb.closePath();
+      gh.moveTo(-0.55, 0.58);
+      gh.quadraticCurveTo(-0.2, 0.66, 0.05, 1.12);
+      gh.quadraticCurveTo(0.12, 1.18, 0.5, 1.18);
+      gh.quadraticCurveTo(0.95, 1.16, 1.2, 0.66);
+      gh.lineTo(1.25, 0.58); gh.closePath();
+      g.add(this._profileMesh(lb, 2.0, 0.10, bodyMat));
+      g.add(this._profileMesh(gh, 1.5, 0.05, glassMat));
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, 0.4), bodyMat);
+      wing.position.set(0, 0.98, 1.5); g.add(wing);
+      for (const sx of [-1, 1]) {
+        const st = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.22, 0.12), bodyMat);
+        st.position.set(sx * 0.5, 0.86, 1.5); g.add(st);
+      }
+      return;
+    }
+
+    if (design === "classic") {
+      lb.moveTo(-1.7, 0.32);
+      lb.quadraticCurveTo(-1.72, 0.62, -1.35, 0.70); lb.lineTo(1.35, 0.70);
+      lb.quadraticCurveTo(1.72, 0.62, 1.7, 0.32); lb.closePath();
+      gh.moveTo(-0.62, 0.68);
+      gh.quadraticCurveTo(-0.4, 1.5, 0.0, 1.58);
+      gh.quadraticCurveTo(0.42, 1.64, 0.72, 1.52);
+      gh.quadraticCurveTo(1.0, 1.36, 1.02, 0.70);
+      gh.lineTo(1.02, 0.68); gh.closePath();
+      g.add(this._profileMesh(lb, 1.95, 0.16, bodyMat));
+      g.add(this._profileMesh(gh, 1.55, 0.08, glassMat));
+      return;
+    }
+
+    // default: hatch
+    lb.moveTo(-1.95, 0.30); lb.lineTo(-1.95, 0.52);
+    lb.quadraticCurveTo(-1.86, 0.66, -1.45, 0.70); lb.lineTo(1.5, 0.70);
+    lb.quadraticCurveTo(1.9, 0.66, 1.97, 0.52); lb.lineTo(1.97, 0.30); lb.closePath();
+    gh.moveTo(-0.45, 0.66);
+    gh.quadraticCurveTo(-0.18, 0.74, 0.02, 1.38);
+    gh.quadraticCurveTo(0.10, 1.46, 0.55, 1.46);
+    gh.quadraticCurveTo(0.98, 1.44, 1.26, 0.80);
+    gh.lineTo(1.30, 0.66); gh.closePath();
+    g.add(this._profileMesh(lb, 2.0, 0.10, bodyMat));
+    g.add(this._profileMesh(gh, 1.5, 0.05, glassMat));
+  }
+
+  _rebuildCar() {
+    if (this.car) {
+      this.scene.remove(this.car);
+      this.car.traverse((o) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) { const m = o.material; (Array.isArray(m) ? m : [m]).forEach((mm) => mm.dispose && mm.dispose()); }
+      });
+    }
+    this._buildCar();
+  }
+
   setCar(colors) {
     this.carColors = colors;
     if (this.carParts && this.carParts.bodyMat) {
       this.carParts.bodyMat.color.set(colors.body).convertSRGBToLinear();
+    }
+  }
+
+  setDesign(id) {
+    if (id === this.carDesign) return;
+    this.carDesign = id;
+    this._rebuildCar();
+  }
+
+  setLights(def) {
+    this.lightDef = def || LIGHTS[0];
+    if (this.tailMat) {
+      this.tailMat.color.set(this.lightDef.color);
+      this.tailMat.emissive.set(this.lightDef.emissive);
     }
   }
 
@@ -455,12 +561,14 @@ class Renderer {
     return cv;
   }
   _grassCanvas() {
+    // Neutral grey base + grey speckle so the field can be tinted any colour
+    // (green / sand / snow) by the background theme via material.color.
     const S = 128, cv = document.createElement("canvas");
     cv.width = S; cv.height = S; const x = cv.getContext("2d");
-    x.fillStyle = "#5fae46"; x.fillRect(0, 0, S, S);
-    for (let i = 0; i < 1400; i++) {
-      const g = 120 + Math.random() * 70;
-      x.fillStyle = `rgba(${g * 0.5},${g},${g * 0.4},${0.15 + Math.random() * 0.2})`;
+    x.fillStyle = "#d6d6d6"; x.fillRect(0, 0, S, S);
+    for (let i = 0; i < 1500; i++) {
+      const g = 110 + Math.random() * 90;
+      x.fillStyle = `rgba(${g},${g},${g},${0.12 + Math.random() * 0.22})`;
       x.fillRect(Math.random() * S, Math.random() * S, 2, 3);
     }
     return cv;
