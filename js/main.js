@@ -298,6 +298,9 @@
       let dt = (now - last) / 1000; last = now;
       if (dt > 0.1) dt = 0.1;
 
+      // GPU context lost → pause (preserve the run) until it's restored.
+      if (renderer._contextLost) { requestAnimationFrame(frame); return; }
+
       const events = engine.update(dt);
       handleEvents(events);
       renderer.render(engine, dt);

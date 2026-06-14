@@ -74,11 +74,12 @@ class Renderer {
     r.toneMappingExposure = 0.86;
     this.r = r;
 
-    // Recover gracefully if a mobile GPU drops the WebGL context (otherwise
-    // the browser shows a hard "WebGL error" and the page appears broken).
+    // Recover gracefully if the GPU drops the WebGL context. We PAUSE (don't
+    // reload) so the player's run is preserved — three.js re-uploads textures on
+    // the next render once the context is back.
     this._contextLost = false;
     this.canvas.addEventListener("webglcontextlost", (e) => { e.preventDefault(); this._contextLost = true; }, false);
-    this.canvas.addEventListener("webglcontextrestored", () => { window.location.reload(); }, false);
+    this.canvas.addEventListener("webglcontextrestored", () => { this._contextLost = false; }, false);
 
     this.scene = new THREE.Scene();
     this.fogColor = new THREE.Color(0x9fc8e6);
