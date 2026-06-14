@@ -509,6 +509,27 @@ class Renderer {
     g.add(disc);
     return g;
   }
+  _makePower() {
+    // A glowing gold star (the ×2 coin doubler). Emissive so bloom catches it.
+    if (!this._starGeo) {
+      const s = new THREE.Shape();
+      const spikes = 5, outer = 0.62, inner = 0.27;
+      for (let i = 0; i < spikes * 2; i++) {
+        const r = (i % 2) ? inner : outer;
+        const a = (i / (spikes * 2)) * Math.PI * 2 - Math.PI / 2;
+        const x = Math.cos(a) * r, y = Math.sin(a) * r;
+        if (i === 0) s.moveTo(x, y); else s.lineTo(x, y);
+      }
+      s.closePath();
+      const g = new THREE.ExtrudeGeometry(s, { depth: 0.16, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 1, steps: 1 });
+      g.center();
+      this._starGeo = g;
+    }
+    const m = new THREE.Mesh(this._starGeo,
+      new THREE.MeshStandardMaterial({ color: 0xffd23f, emissive: 0xffb000, emissiveIntensity: 1.4, metalness: 0.5, roughness: 0.3, envMap: this.envTex }));
+    m.castShadow = true;
+    return m;
+  }
   _makeTree() {
     const g = new THREE.Group();
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.26, 1.4, 8),
@@ -742,6 +763,16 @@ class Renderer {
       const m = this._poolGet("coin", () => this._makeCoin());
       m.position.set(this._wx(k.frac), 0.75 + Math.sin(this.t * 4 + k.z) * 0.08, wz);
       m.rotation.y = this.t * 5 + k.z;
+    }
+
+    for (const k of (engine.powerups || [])) {
+      const wz = this._wz(k.z);
+      if (wz < -160 || wz > 16) continue;
+      const m = this._poolGet("power", () => this._makePower());
+      m.position.set(this._wx(k.frac), 0.95 + Math.sin(this.t * 4 + k.z) * 0.12, wz);
+      m.rotation.z = this.t * 2.4 + k.z;
+      const s = 1 + Math.sin(this.t * 6 + k.z) * 0.1;
+      m.scale.set(s, s, s);
     }
 
     // Scenery: deterministic slots scrolling toward the camera.

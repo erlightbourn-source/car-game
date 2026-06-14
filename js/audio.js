@@ -61,6 +61,20 @@ const Sfx = (() => {
       blip(220, 80, 0.30, "sawtooth", 0.14);
       blip(140, 60, 0.32, "square", 0.10);
     },
+    bonus() {                                                // happy rising arpeggio (daily bonus)
+      blip(523, 523, 0.10, "triangle", 0.12);
+      setTimeout(() => blip(659, 659, 0.10, "triangle", 0.12), 90);
+      setTimeout(() => blip(784, 784, 0.10, "triangle", 0.12), 180);
+      setTimeout(() => blip(1047, 1047, 0.16, "triangle", 0.13), 280);
+    },
+    unlock() {                                               // bright two-note "ta-da" (purchase)
+      blip(660, 660, 0.10, "square", 0.10);
+      setTimeout(() => blip(1047, 1047, 0.18, "square", 0.11), 95);
+    },
+    powerup() {                                              // energetic rising sweep (×2 doubler)
+      blip(380, 1180, 0.26, "sawtooth", 0.12);
+      setTimeout(() => blip(880, 1500, 0.20, "square", 0.08), 70);
+    },
 
     // --- Engine drone -----------------------------------------------------
     engineStart() {

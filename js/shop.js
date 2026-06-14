@@ -82,8 +82,8 @@ const Shop = (() => {
     if (owned.indexOf(id) >= 0) {
       data[c.selKey] = id;                             // own it → just equip
     } else if (data.coins >= item.price) {
-      data.coins -= item.price; owned.push(id); data[c.selKey] = id; Sfx.coin();
-      onUnlock(item.name);                             // toast "X unlocked!"
+      data.coins -= item.price; owned.push(id); data[c.selKey] = id;
+      onUnlock(item.name);                             // toast + unlock sound (host)
     } else { return; }                                 // can't afford
     persist(); onChange(); renderGarage();
   }
@@ -103,9 +103,33 @@ const Shop = (() => {
     return { amount, streak: data.streak };
   }
 
+  // Streak data for the Garage calendar.
+  const STREAK_AMOUNTS = [25, 40, 55, 70, 85, 100, 100];
+  function streakInfo() {
+    return { streak: data.streak | 0, claimedToday: data.lastBonus === dayKey(new Date()), amounts: STREAK_AMOUNTS };
+  }
+
   // ---- UI -----------------------------------------------------------------
+  function renderStreak() {
+    const el = document.getElementById("shop-streak");
+    if (!el) return;
+    const s = data.streak | 0;
+    let html = '<div class="streak-cells">';
+    for (let i = 0; i < STREAK_AMOUNTS.length; i++) {
+      const day = i + 1;
+      const cls = "streak-cell" + (day <= s ? " on" : "") + (day === s ? " today" : "");
+      html += `<div class="${cls}"><span class="sc-day">D${day}</span><span class="sc-amt">🪙${STREAK_AMOUNTS[i]}</span></div>`;
+    }
+    html += "</div>";
+    const note = streakInfo().claimedToday
+      ? `🔥 ${s}-day streak · come back tomorrow!`
+      : "🎁 Daily bonus ready — it's auto-claimed on launch!";
+    el.innerHTML = `<div class="streak-title">${note}</div>` + html;
+  }
+
   function renderGarage() {
     document.getElementById("shop-coins").textContent = data.coins;
+    renderStreak();
     renderTabs();
     const host = document.getElementById("shop-items");
     host.innerHTML = "";
@@ -187,7 +211,7 @@ const Shop = (() => {
       onUnlock = (opts && opts.onUnlock) || (() => {});
       load();
     },
-    claimDailyBonus,
+    claimDailyBonus, streakInfo,
     get coins() { return data.coins; },
     get best() { return data.best; },
     get upgrades() { return { magnet: data.magnet | 0, shield: data.shield | 0 }; },

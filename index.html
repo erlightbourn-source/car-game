@@ -9,7 +9,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Zippy's Lane Dash 🚗</title>
-  <link rel="stylesheet" href="style.css?v=8" />
+  <link rel="stylesheet" href="style.css?v=9" />
 </head>
 <body>
   <div id="game-wrap">
@@ -23,6 +23,7 @@
       <div class="hud-coins">🪙 <span id="hud-coins-val">0</span></div>
       <span id="hud-score">0</span>
       <div class="hud-speed"><span id="hud-speed-val">0</span> km/h</div>
+      <div id="hud-doubler" class="hud-doubler hidden">×2 <span id="hud-doubler-time">0</span>s</div>
     </div>
 
     <!-- START SCREEN -->
@@ -43,6 +44,7 @@
       <div class="panel shop">
         <h1>🔧 Garage</h1>
         <div class="coin-balance">🪙 <span id="shop-coins">0</span></div>
+        <div id="shop-streak" class="streak"></div>
         <div id="shop-tabs" class="tabs"></div>
         <div id="shop-items" class="shop-items"></div>
         <button id="shop-back" class="btn">⬅ Back</button>
@@ -79,11 +81,11 @@
   <script src="js/vendor/MaskPass.js"></script>
   <script src="js/vendor/UnrealBloomPass.js"></script>
   <!-- Load order: config -> audio -> engine (logic) -> renderer (3D) -> shop -> main -->
-  <script src="js/config.js?v=8"></script>
-  <script src="js/audio.js?v=8"></script>
-  <script src="js/engine.js?v=8"></script>
-  <script src="js/renderer.js?v=8"></script>
-  <script src="js/shop.js?v=8"></script>
-  <script src="js/main.js?v=8"></script>
+  <script src="js/config.js?v=9"></script>
+  <script src="js/audio.js?v=9"></script>
+  <script src="js/engine.js?v=9"></script>
+  <script src="js/renderer.js?v=9"></script>
+  <script src="js/shop.js?v=9"></script>
+  <script src="js/main.js?v=9"></script>
 </body>
 </html>

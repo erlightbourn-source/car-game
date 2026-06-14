@@ -43,6 +43,9 @@ class GameEngine {
     this.invuln = 0;               // seconds of post-shield invulnerability
     this.sinceSpawn = c.SPAWN_GAP_START - c.LEAD_IN; // brief empty-road intro
     this.sinceCoin = 0;
+    this.powerups = [];            // {lane, frac, z, collected}
+    this.sincePower = 0;
+    this.doubler = 0;              // seconds remaining of ×2 coin doubler
     this.scroll = 0;               // for the renderer's road animation
     this.events = [];
     this._lastCoinLane = -1;
@@ -134,6 +137,15 @@ class GameEngine {
     this._lastCoinLane = lane;
   }
 
+  _spawnPower() {
+    const c = this.cfg, n = c.LANES.length, occupied = this._lanesOccupiedNearFar();
+    const free = [];
+    for (let i = 0; i < n; i++) if (!occupied.has(i)) free.push(i);
+    const lane = free.length ? free[Math.floor(Math.random() * free.length)]
+      : Math.floor(Math.random() * n);
+    this.powerups.push({ lane, frac: c.LANES[lane], z: c.FAR_Z, collected: false });
+  }
+
   _die() {
     if (this.state === "dead") return;
     this.state = "dead";
@@ -165,11 +177,16 @@ class GameEngine {
       this.scroll += this.speed * dt;
       for (const o of this.obstacles) o.z -= this.speed * dt;
       for (const k of this.coins) k.z -= this.speed * dt;
+      for (const k of this.powerups) k.z -= this.speed * dt;
       return this.events;
     }
 
     // ---- state === "playing" ----
     if (this.invuln > 0) this.invuln = Math.max(0, this.invuln - dt);
+    if (this.doubler > 0) {
+      this.doubler = Math.max(0, this.doubler - dt);
+      if (this.doubler === 0) this.events.push({ type: "doublerend" });
+    }
     this.speed = Math.min(c.MAX_SPEED, c.START_SPEED + this.score * c.SPEED_PER_PASS);
     const ds = this.speed * dt;
     this.distance += ds;
@@ -178,6 +195,7 @@ class GameEngine {
     // Advance world toward the camera.
     for (const o of this.obstacles) o.z -= ds;
     for (const k of this.coins) k.z -= ds;
+    for (const k of this.powerups) k.z -= ds;
 
     // Spawn obstacle rows by distance (fair, speed-independent).
     this.sinceSpawn += ds;
@@ -194,7 +212,14 @@ class GameEngine {
       this.sinceCoin = 0;
     }
 
-    // Magnet: pull nearby coins toward the car as they approach.
+    // Spawn ×2 power-ups on a rarer cadence.
+    this.sincePower += ds;
+    if (this.sincePower >= c.POWER_GAP) {
+      this._spawnPower();
+      this.sincePower = 0;
+    }
+
+    // Magnet: pull nearby coins (and power-ups) toward the car as they approach.
     const range = this.magnetRange();
     const pf = this.player.laneFrac;
     if (range > 0) {
@@ -203,16 +228,35 @@ class GameEngine {
           k.frac += (pf - k.frac) * Math.min(1, dt * 6);
         }
       }
+      for (const k of this.powerups) {
+        if (!k.collected && k.z < c.COIN_PULL_Z && Math.abs(k.frac - pf) <= range) {
+          k.frac += (pf - k.frac) * Math.min(1, dt * 6);
+        }
+      }
     }
 
-    // Resolve coins crossing the player's plane.
     const pickTol = Math.max(c.COIN_BASE_TOL, range);
+
+    // Resolve power-ups crossing the player's plane → activate the ×2 doubler.
+    for (const k of this.powerups) {
+      if (!k.collected && k.z <= c.PLAYER_Z) {
+        k.collected = true;
+        if (Math.abs(k.frac - pf) <= pickTol) {
+          this.doubler = c.DOUBLER_TIME;
+          this.events.push({ type: "powerup", kind: "x2" });
+        }
+      }
+    }
+    this.powerups = this.powerups.filter((k) => !k.collected && k.z > -8);
+
+    // Resolve coins crossing the player's plane (doubled while the ×2 is active).
     for (const k of this.coins) {
       if (!k.collected && k.z <= c.PLAYER_Z) {
         k.collected = true;
         if (Math.abs(k.frac - pf) <= pickTol) {
-          this.runCoins += c.COIN_VALUE;
-          this.events.push({ type: "coin", value: this.runCoins, x: k.frac });
+          const gain = c.COIN_VALUE * (this.doubler > 0 ? 2 : 1);
+          this.runCoins += gain;
+          this.events.push({ type: "coin", value: this.runCoins, gain, x: k.frac });
         }
       }
     }

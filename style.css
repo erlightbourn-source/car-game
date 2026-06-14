@@ -179,6 +179,19 @@ h1 {
 }
 .coins-earned { font-size: 16px; font-weight: bold; color: #e0a81f; margin: 6px 0 4px; }
 
+/* ×2 doubler badge in the HUD */
+.hud-doubler {
+  position: absolute;
+  top: 64px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(180deg, #ffd23f, #ff9e1f);
+  color: #6a3b00; font-weight: bold; font-size: 16px;
+  padding: 4px 14px; border-radius: 14px;
+  border: 2px solid #fff;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.2), 0 0 14px rgba(255,200,60,0.8);
+  animation: dblpulse 0.7s ease-in-out infinite alternate;
+}
+@keyframes dblpulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.08); } }
+
 /* ---------- Mute ---------- */
 .mute-btn {
   position: absolute;
@@ -276,6 +289,22 @@ h1 {
 .upg-buy:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--accent-dark); }
 .upg-buy.locked { background: #c2c8cf; box-shadow: 0 4px 0 #a4abb3; cursor: not-allowed; }
 .upg-max { font-size: 15px; font-weight: bold; color: #3ec98a; padding: 0 10px; }
+
+/* ---------- Garage streak calendar ---------- */
+.streak { margin: 4px 0 2px; }
+.streak-title { font-size: 12.5px; font-weight: bold; color: #5a6b7a; margin-bottom: 6px; }
+.streak-cells { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.streak-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  background: #eef2f6; border-radius: 9px; padding: 5px 2px;
+  border: 2px solid transparent;
+}
+.streak-cell.on { background: #fff1cc; }
+.streak-cell.today { border-color: #ffb000; box-shadow: 0 0 0 2px rgba(255,176,0,0.3); }
+.sc-day { font-size: 10px; font-weight: bold; color: #8a97a4; }
+.streak-cell.on .sc-day { color: #b07900; }
+.sc-amt { font-size: 10px; font-weight: bold; color: #5a6b7a; }
+.streak-cell.on .sc-amt { color: #e0901f; }
 
 /* ---------- Garage tabs + item grid ---------- */
 .tabs {

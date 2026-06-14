@@ -36,6 +36,7 @@
   const elStart = $("screen-start"), elShop = $("screen-shop");
   const elOver = $("screen-over"), elHud = $("hud");
   const elHudScore = $("hud-score"), elHudCoins = $("hud-coins-val"), elHudSpeed = $("hud-speed-val");
+  const elDoubler = $("hud-doubler"), elDoublerTime = $("hud-doubler-time");
 
   // --- Persistence / economy ----------------------------------------------
   function refreshLabels() {
@@ -53,14 +54,14 @@
   function onShopChange() { refreshLabels(); applyCustomization(); }
   Shop.init({
     onChange: onShopChange,
-    onUnlock: (name) => showToast("🔓 " + name + " unlocked!"),
+    onUnlock: (name) => { showToast("🔓 " + name + " unlocked!"); Sfx.unlock(); },
   });
   engine.best = Shop.best;
   applyCustomization();
   // Daily login bonus (after a short beat so it's noticed on the start screen).
   setTimeout(() => {
     const b = Shop.claimDailyBonus();
-    if (b) { showToast(`🎁 Daily bonus +${b.amount}  ·  🔥 ${b.streak}-day streak`); Sfx.milestone(); }
+    if (b) { showToast(`🎁 Daily bonus +${b.amount}  ·  🔥 ${b.streak}-day streak`); Sfx.bonus(); }
   }, 700);
 
   // --- Screen state machine ------------------------------------------------
@@ -78,6 +79,7 @@
   function showPlaying() {
     ui = "playing"; hideAll(); elHud.classList.remove("hidden");
     elHudScore.textContent = "0"; elHudCoins.textContent = "0"; elHudSpeed.textContent = "0";
+    elDoubler.classList.add("hidden");
   }
   function showOver() {
     ui = "over"; hideAll();
@@ -188,10 +190,14 @@
         elHudScore.textContent = ev.value;
         if (ev.value % 5 === 0) Sfx.milestone(); else Sfx.pass();
       } else if (ev.type === "coin") {
-        Shop.addCoins(CONFIG.COIN_VALUE);
+        Shop.addCoins(ev.gain || CONFIG.COIN_VALUE);
         Sfx.coin();
-        renderer.burst(0, 0, 6, "#ffe07a", 90);   // small 3D sparkle at the car
+        renderer.burst(0, 0, 6, engine.doubler > 0 ? "#86e1ff" : "#ffe07a", 90);
         flyCoinToHud();                             // 2D coin flies to the HUD
+      } else if (ev.type === "powerup") {
+        Sfx.powerup();
+        showToast("💰 ×2 Coins!");
+        renderer.burst(0, 0, 22, "#ffd23f", 200);
       } else if (ev.type === "shieldhit") {
         Sfx.shield();
         const p = playerScreen();
@@ -266,6 +272,13 @@
       const sp01 = (engine.speed - CONFIG.START_SPEED) / (CONFIG.MAX_SPEED - CONFIG.START_SPEED);
       Sfx.setEngine(Math.max(0, Math.min(1, sp01)));
       elHudSpeed.textContent = Math.round(engine.speed * CONFIG.KMH_PER_SPEED);
+      // ×2 doubler countdown badge
+      if (engine.doubler > 0) {
+        elDoublerTime.textContent = Math.ceil(engine.doubler);
+        elDoubler.classList.remove("hidden");
+      } else {
+        elDoubler.classList.add("hidden");
+      }
     }
     requestAnimationFrame(frame);
   }
