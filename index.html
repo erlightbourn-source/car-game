@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#7ec8ff" />
+  <!-- Security: lock everything to same-origin. No external/CDN scripts (Three.js is vendored),
+       no inline <script>, no eval. 'unsafe-inline' is only granted to styles. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>Zippy's Lane Dash 🚗</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-wrap">
+    <canvas id="game" aria-label="Zippy's Lane Dash game"></canvas>
+
+    <!-- Mute toggle (always visible) -->
+    <button id="mute-btn" class="mute-btn" aria-label="Toggle sound" title="Toggle sound">🔊</button>
+
+    <!-- HUD (shown while playing) -->
+    <div id="hud" class="hud hidden">
+      <div class="hud-coins">🪙 <span id="hud-coins-val">0</span></div>
+      <span id="hud-score">0</span>
+      <div class="hud-speed"><span id="hud-speed-val">0</span> km/h</div>
+    </div>
+
+    <!-- START SCREEN -->
+    <div id="screen-start" class="screen">
+      <div class="panel">
+        <div class="big-emoji">🚗💨</div>
+        <h1>Zippy's Lane Dash</h1>
+        <p class="tagline">Swipe to dodge the road work &amp; grab coins!</p>
+        <button id="play-btn" class="btn">▶ Play</button>
+        <button id="garage-btn" class="btn btn-2">🔧 Garage</button>
+        <p class="hint">Swipe ⬅️ ➡️ or press <b>← →</b> / <b>A D</b> to switch lanes</p>
+        <p class="best">Best: <span id="start-best">0</span> &nbsp;·&nbsp; 🪙 <span id="start-coins">0</span></p>
+      </div>
+    </div>
+
+    <!-- GARAGE / SHOP SCREEN -->
+    <div id="screen-shop" class="screen hidden">
+      <div class="panel shop">
+        <h1>🔧 Garage</h1>
+        <div class="coin-balance">🪙 <span id="shop-coins">0</span></div>
+
+        <h2>Car colour</h2>
+        <div id="car-row" class="swatch-row"></div>
+
+        <h2>Upgrades</h2>
+        <div id="upg-magnet" class="upg-row"></div>
+        <div id="upg-shield" class="upg-row"></div>
+
+        <button id="shop-back" class="btn">⬅ Back</button>
+      </div>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="screen-over" class="screen hidden">
+      <div class="panel">
+        <div class="big-emoji">🤕🚗</div>
+        <h1>Oops, a bump!</h1>
+        <div class="scorebox">
+          <div><span class="score-label">Score</span><span id="over-score" class="score-val">0</span></div>
+          <div><span class="score-label">Best</span><span id="over-best" class="score-val">0</span></div>
+        </div>
+        <p class="coins-earned">🪙 +<span id="over-coins">0</span> coins this run</p>
+        <div id="new-best" class="new-best hidden">🏆 New best!</div>
+        <button id="again-btn" class="btn">↻ Play again</button>
+        <button id="over-garage-btn" class="btn btn-2">🔧 Garage</button>
+        <p class="hint">Swipe or tap to play again</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js (vendored locally so the game still opens with no build step / offline) -->
+  <script src="js/vendor/three.min.js"></script>
+  <!-- Post-processing (bloom) — load order matters: shaders, then composer, then passes -->
+  <script src="js/vendor/CopyShader.js"></script>
+  <script src="js/vendor/LuminosityHighPassShader.js"></script>
+  <script src="js/vendor/GammaCorrectionShader.js"></script>
+  <script src="js/vendor/EffectComposer.js"></script>
+  <script src="js/vendor/RenderPass.js"></script>
+  <script src="js/vendor/ShaderPass.js"></script>
+  <script src="js/vendor/MaskPass.js"></script>
+  <script src="js/vendor/UnrealBloomPass.js"></script>
+  <!-- Load order: config -> audio -> engine (logic) -> renderer (3D) -> shop -> main -->
+  <script src="js/config.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/shop.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
