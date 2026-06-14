@@ -63,9 +63,10 @@
   function hideAll() {
     elStart.classList.add("hidden"); elShop.classList.add("hidden");
     elOver.classList.add("hidden"); elHud.classList.add("hidden");
+    renderer.setShowcase(false);
   }
   function showStart() { ui = "start"; hideAll(); refreshLabels(); elStart.classList.remove("hidden"); }
-  function showShop()  { ui = "shop";  hideAll(); Shop.renderGarage(); elShop.classList.remove("hidden"); }
+  function showShop()  { ui = "shop";  hideAll(); renderer.setShowcase(true); Shop.renderGarage(); elShop.classList.remove("hidden"); }
   function showPlaying() {
     ui = "playing"; hideAll(); elHud.classList.remove("hidden");
     elHudScore.textContent = "0"; elHudCoins.textContent = "0"; elHudSpeed.textContent = "0";

@@ -360,6 +360,33 @@ class Renderer {
       return;
     }
 
+    if (design === "van") {
+      // Tall boxy van with a wraparound window band.
+      const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.5, 3.9), bodyMat);
+      chassis.position.set(0, 0.55, 0); chassis.castShadow = true; g.add(chassis);
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.96, 0.95, 3.4), bodyMat);
+      cabin.position.set(0, 1.25, -0.1); cabin.castShadow = true; g.add(cabin);
+      const band = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.4, 3.0), glassMat);
+      band.position.set(0, 1.42, -0.15); g.add(band);
+      return;
+    }
+
+    if (design === "roadster") {
+      // Open-top convertible: low body, dark cockpit, small raked windshield, roll hoop.
+      lb.moveTo(-2.0, 0.26); lb.lineTo(-2.0, 0.5);
+      lb.quadraticCurveTo(-1.9, 0.64, -1.4, 0.68); lb.lineTo(1.5, 0.68);
+      lb.quadraticCurveTo(1.92, 0.64, 2.0, 0.5); lb.lineTo(2.0, 0.26); lb.closePath();
+      g.add(this._profileMesh(lb, 2.0, 0.12, bodyMat));
+      const pit = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.22, 1.7),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: 0.85 }));
+      pit.position.set(0, 0.62, 0.1); g.add(pit);
+      const ws = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 0.06), glassMat);
+      ws.position.set(0, 0.96, -0.55); ws.rotation.x = -0.55; g.add(ws);
+      const hoop = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.32, 0.12), bodyMat);
+      hoop.position.set(0, 0.96, 0.72); g.add(hoop);
+      return;
+    }
+
     // default: hatch
     lb.moveTo(-1.95, 0.30); lb.lineTo(-1.95, 0.52);
     lb.quadraticCurveTo(-1.86, 0.66, -1.45, 0.70); lb.lineTo(1.5, 0.70);
@@ -623,11 +650,38 @@ class Renderer {
     this.camera.updateProjectionMatrix();
   }
 
+  // Garage turntable: spin the car, framed in the upper part of the screen so
+  // the (bottom-anchored) Garage panel doesn't cover it.
+  setShowcase(on) {
+    this.showcase = on;
+    if (!on && this.camera) {
+      this.camera.clearViewOffset();
+      if (this.car) { this.car.rotation.set(0, 0, 0); this.car.position.set(0, 0, 0); }
+    }
+  }
+  _renderShowcase(dt) {
+    this._spin = (this._spin || 0) + dt * 0.7;
+    this.car.position.set(0, 0, 0);
+    this.car.rotation.set(0, this._spin, 0);
+    if (this.wheels) for (const w of this.wheels) w.rotation.x -= dt * 0.4;
+    // Nice 3/4 framing, then shift the rendered image UP so the car sits in the
+    // open strip above the (bottom-anchored) Garage panel.
+    const sz = this.r.getSize(new THREE.Vector2());
+    this.camera.setViewOffset(sz.x, sz.y, 0, Math.round(sz.y * 0.30), sz.x, sz.y);
+    this.camera.position.set(4.4, 2.5, 5.8);
+    this.camLook.set(0, 0.7, 0);
+    this.camera.lookAt(this.camLook);
+    this._poolResetAll(); this._poolHideUnused();   // hide any gameplay objects
+    if (this.composer) this.composer.render(dt); else this.r.render(this.scene, this.camera);
+  }
+
   // ---- Frame --------------------------------------------------------------
   render(engine, dt) {
     if (this._contextLost) return;          // GPU dropped the context; wait for restore
     this.t += dt;
     const c = this.cfg;
+
+    if (this.showcase) { this._renderShowcase(dt); return; }
 
     // Scroll the road & grass textures with travelled distance.
     // Keep offsets wrapped to [0,1) so they never drift into float-precision jitter.

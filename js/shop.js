@@ -38,7 +38,7 @@ const Shop = (() => {
     ["paint", "🎨 Paint"], ["design", "🚗 Body"], ["light", "💡 Lights"],
     ["bg", "🌅 World"], ["perks", "⚙️ Perks"],
   ];
-  const DESIGN_EMOJI = { hatch: "🚗", sport: "🏎️", pickup: "🛻", classic: "🚙" };
+  const DESIGN_EMOJI = { hatch: "🚗", sport: "🏎️", pickup: "🛻", van: "🚐", classic: "🚙", roadster: "🚘" };
 
   function load() {
     try {

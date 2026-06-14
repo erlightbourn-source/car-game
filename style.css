@@ -289,8 +289,13 @@ h1 {
 }
 .tab.active { background: var(--accent); color: #fff; box-shadow: 0 3px 0 var(--accent-dark); }
 
+/* Anchor the Garage panel to the bottom so the spinning car preview shows above it. */
+#screen-shop { align-items: flex-end; }
+#screen-shop .panel.shop { margin-bottom: 12px; animation: slideup 0.3s cubic-bezier(0.2,1,0.4,1) both; }
+@keyframes slideup { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
 .shop-items {
-  max-height: 46vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  max-height: 34vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: 2px; margin-bottom: 6px;
 }
 .item-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
