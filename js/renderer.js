@@ -65,9 +65,10 @@ class Renderer {
     }
     if (!r || !r.getContext()) throw new Error("WEBGL_UNSUPPORTED");
 
-    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.isMobile ? 1.5 : 2));
-    r.shadowMap.enabled = true;
-    r.shadowMap.type = this.isMobile ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.isMobile ? 1.25 : 2));
+    // Shadows are a major GPU cost / WebGL-context-loss risk on phones — off on mobile.
+    r.shadowMap.enabled = !this.isMobile;
+    r.shadowMap.type = THREE.PCFSoftShadowMap;
     r.outputEncoding = THREE.sRGBEncoding;
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.toneMappingExposure = 0.86;

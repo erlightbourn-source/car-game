@@ -207,7 +207,7 @@
         renderer.burst(0, 0, 7, "#d9d2c4", 90);   // dust kick only (no sound)
       } else if (ev.type === "score") {
         elHudScore.textContent = ev.value;
-        if (ev.value % 5 === 0) Sfx.milestone(); else Sfx.pass();
+        if (ev.value % 5 === 0) Sfx.milestone();   // milestone only — no per-dodge tick
       } else if (ev.type === "coin") {
         Shop.addCoins(ev.gain || CONFIG.COIN_VALUE);
         Sfx.coin();
@@ -289,28 +289,34 @@
   }
 
   // --- Game loop -----------------------------------------------------------
+  // The whole body is wrapped so a single bad frame can NEVER kill the loop
+  // (an unhandled throw used to skip the re-schedule and freeze the game).
   let last = performance.now();
+  let errCount = 0;
   function frame(now) {
-    let dt = (now - last) / 1000; last = now;
-    if (dt > 0.1) dt = 0.1;
+    try {
+      let dt = (now - last) / 1000; last = now;
+      if (dt > 0.1) dt = 0.1;
 
-    const events = engine.update(dt);
-    handleEvents(events);
-    renderer.render(engine, dt);
+      const events = engine.update(dt);
+      handleEvents(events);
+      renderer.render(engine, dt);
 
-    if (engine.state === "playing") {
-      const sp01 = (engine.speed - CONFIG.START_SPEED) / (CONFIG.MAX_SPEED - CONFIG.START_SPEED);
-      Sfx.setEngine(Math.max(0, Math.min(1, sp01)));
-      elHudSpeed.textContent = Math.round(engine.speed * CONFIG.KMH_PER_SPEED);
-      // Power-up status badges
-      if (engine.doubler > 0) { elDoublerTime.textContent = Math.ceil(engine.doubler); elDoubler.classList.remove("hidden"); }
-      else elDoubler.classList.add("hidden");
-      if (engine.slow > 0) { elSlowTime.textContent = Math.ceil(engine.slow); elSlow.classList.remove("hidden"); }
-      else elSlow.classList.add("hidden");
-      if (engine.shields > 0) { elShieldN.textContent = engine.shields; elShieldBadge.classList.remove("hidden"); }
-      else elShieldBadge.classList.add("hidden");
+      if (engine.state === "playing") {
+        const sp01 = (engine.speed - CONFIG.START_SPEED) / (CONFIG.MAX_SPEED - CONFIG.START_SPEED);
+        Sfx.setEngine(Math.max(0, Math.min(1, sp01)));
+        elHudSpeed.textContent = Math.round(engine.speed * CONFIG.KMH_PER_SPEED);
+        if (engine.doubler > 0) { elDoublerTime.textContent = Math.ceil(engine.doubler); elDoubler.classList.remove("hidden"); }
+        else elDoubler.classList.add("hidden");
+        if (engine.slow > 0) { elSlowTime.textContent = Math.ceil(engine.slow); elSlow.classList.remove("hidden"); }
+        else elSlow.classList.add("hidden");
+        if (engine.shields > 0) { elShieldN.textContent = engine.shields; elShieldBadge.classList.remove("hidden"); }
+        else elShieldBadge.classList.add("hidden");
+      }
+    } catch (err) {
+      if (errCount++ < 3) console.error("frame error (recovered):", err);
     }
-    requestAnimationFrame(frame);
+    requestAnimationFrame(frame);   // ALWAYS keep the loop alive
   }
 
   // --- Boot ----------------------------------------------------------------
