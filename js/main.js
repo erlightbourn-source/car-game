@@ -293,6 +293,7 @@
   // (an unhandled throw used to skip the re-schedule and freeze the game).
   let last = performance.now();
   let errCount = 0;
+  let perfT = 0, perfN = 0, perfBad = 0;   // adaptive-quality watchdog
   function frame(now) {
     try {
       let dt = (now - last) / 1000; last = now;
@@ -315,6 +316,16 @@
         else elSlow.classList.add("hidden");
         if (engine.shields > 0) { elShieldN.textContent = engine.shields; elShieldBadge.classList.remove("hidden"); }
         else elShieldBadge.classList.add("hidden");
+      }
+
+      // Adaptive quality: if the device sustains poor FPS, step quality down so
+      // it self-protects instead of overloading the GPU and crashing.
+      perfT += dt; perfN++;
+      if (perfT >= 1) {
+        const avgMs = (perfT / perfN) * 1000;
+        if (avgMs > 25) { if (++perfBad >= 2) { renderer.degrade(); perfBad = 0; } }
+        else perfBad = 0;
+        perfT = 0; perfN = 0;
       }
     } catch (err) {
       if (errCount++ < 3) console.error("frame error (recovered):", err);

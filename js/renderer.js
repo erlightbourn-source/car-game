@@ -65,7 +65,12 @@ class Renderer {
     }
     if (!r || !r.getContext()) throw new Error("WEBGL_UNSUPPORTED");
 
-    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.isMobile ? 1.25 : 2));
+    // Base pixel ratio cap; resize() further clamps to a total-pixel budget so a
+    // big/high-DPI window can't overload the GPU (a real desktop crash cause).
+    this.basePR = Math.min(window.devicePixelRatio || 1, this.isMobile ? 1.25 : 1.5);
+    this.maxPixels = this.isMobile ? 1.6e6 : 2.6e6;
+    this._perf = 0;
+    r.setPixelRatio(this.basePR);
     // Shadows are a major GPU cost / WebGL-context-loss risk on phones — off on mobile.
     r.shadowMap.enabled = !this.isMobile;
     r.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -676,6 +681,20 @@ class Renderer {
     return new THREE.BoxGeometry(w, h, d);
   }
 
+  // Step quality DOWN one level when the device is struggling (called by the
+  // FPS watchdog). One-way so it can't oscillate. Returns a label or null.
+  degrade() {
+    this._perf++;
+    if (this._perf === 1 && this.composer) { this.composer = null; return "bloom off"; }
+    if (this._perf === 2 && this.basePR > 1) { this.basePR = 1; this.resize(); return "resolution down"; }
+    if (this._perf === 3 && this.r.shadowMap.enabled) {
+      this.r.shadowMap.enabled = false;
+      this.scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; });
+      return "shadows off";
+    }
+    return null;
+  }
+
   // Project the car to screen coordinates (viewport px) — used to launch the
   // coin-collect animation from the car toward the HUD.
   carScreenPos() {
@@ -694,8 +713,13 @@ class Renderer {
     const w = wrap.clientWidth, h = wrap.clientHeight;
     this.canvas.style.width = w + "px";
     this.canvas.style.height = h + "px";
+    // Clamp pixel ratio so total drawing-buffer pixels stay within budget.
+    let pr = this.basePR;
+    if (w * h * pr * pr > this.maxPixels) pr = Math.sqrt(this.maxPixels / (w * h));
+    pr = Math.max(0.6, Math.min(pr, this.basePR));
+    this.r.setPixelRatio(pr);
     this.r.setSize(w, h, false);
-    if (this.composer) this.composer.setSize(w, h);
+    if (this.composer) { this.composer.setPixelRatio(pr); this.composer.setSize(w, h); }
     this.camera.aspect = w / h;
     // Widen the (vertical) FOV on tall portrait phone screens so obstacles in
     // the side lanes stay on-screen as they approach.
