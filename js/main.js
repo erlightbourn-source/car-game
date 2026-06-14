@@ -51,9 +51,17 @@
     renderer.setBackground(Shop.equippedBackground());
   }
   function onShopChange() { refreshLabels(); applyCustomization(); }
-  Shop.init({ onChange: onShopChange });
+  Shop.init({
+    onChange: onShopChange,
+    onUnlock: (name) => showToast("🔓 " + name + " unlocked!"),
+  });
   engine.best = Shop.best;
   applyCustomization();
+  // Daily login bonus (after a short beat so it's noticed on the start screen).
+  setTimeout(() => {
+    const b = Shop.claimDailyBonus();
+    if (b) { showToast(`🎁 Daily bonus +${b.amount}  ·  🔥 ${b.streak}-day streak`); Sfx.milestone(); }
+  }, 700);
 
   // --- Screen state machine ------------------------------------------------
   let ui = "start";          // "start" | "shop" | "playing" | "over"
@@ -181,10 +189,9 @@
         if (ev.value % 5 === 0) Sfx.milestone(); else Sfx.pass();
       } else if (ev.type === "coin") {
         Shop.addCoins(CONFIG.COIN_VALUE);
-        elHudCoins.textContent = engine.runCoins;
         Sfx.coin();
-        const p = playerScreen();
-        renderer.burst(p.x, p.y - 24, 8, "#ffe07a", 110);
+        renderer.burst(0, 0, 6, "#ffe07a", 90);   // small 3D sparkle at the car
+        flyCoinToHud();                             // 2D coin flies to the HUD
       } else if (ev.type === "shieldhit") {
         Sfx.shield();
         const p = playerScreen();
@@ -201,6 +208,48 @@
         setTimeout(() => { if (engine.state === "dead" && ui === "playing") showOver(); }, 550);
       }
     }
+  }
+
+  // --- Juice: toasts, coin-to-HUD flight, HUD pulse ------------------------
+  function showToast(text) {
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = text;
+    document.getElementById("game-wrap").appendChild(t);
+    t.addEventListener("animationend", () => t.remove());
+  }
+
+  function pulseHud() {
+    const hud = document.querySelector(".hud-coins");
+    if (!hud) return;
+    hud.classList.remove("pulse"); void hud.offsetWidth; hud.classList.add("pulse");
+  }
+
+  function flyCoinToHud() {
+    const hud = document.querySelector(".hud-coins");
+    if (!hud) return;
+    const start = renderer.carScreenPos();
+    const r = hud.getBoundingClientRect();
+    const end = { x: r.left + 14, y: r.top + r.height / 2 };
+    const el = document.createElement("div");
+    el.className = "fly-coin";
+    el.textContent = "🪙";
+    el.style.left = start.x + "px";
+    el.style.top = start.y + "px";
+    document.body.appendChild(el);
+    const dx = end.x - start.x, dy = end.y - start.y;
+    const anim = el.animate([
+      { transform: "translate(-50%,-50%) scale(0.6)", opacity: 0.2 },
+      { transform: "translate(-50%,-50%) scale(1.1)", opacity: 1, offset: 0.18 },
+      { transform: `translate(calc(-50% + ${dx * 0.4}px), calc(-50% + ${dy * 0.4 - 50}px)) scale(1)`, opacity: 1, offset: 0.5 },
+      { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.4)`, opacity: 0.85 },
+    ], { duration: 600, easing: "cubic-bezier(0.45,0,0.6,1)" });
+    // Drive the HUD update + cleanup with timers (reliable) rather than relying
+    // on the animation's onfinish, which can be throttled/skipped.
+    const cleanup = () => { if (el.parentNode) el.remove(); };
+    if (anim) { anim.onfinish = cleanup; anim.oncancel = cleanup; }
+    setTimeout(() => { elHudCoins.textContent = engine.runCoins; pulseHud(); }, 520);
+    setTimeout(cleanup, 1600);
   }
 
   // --- Game loop -----------------------------------------------------------

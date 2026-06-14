@@ -635,6 +635,18 @@ class Renderer {
     return new THREE.BoxGeometry(w, h, d);
   }
 
+  // Project the car to screen coordinates (viewport px) — used to launch the
+  // coin-collect animation from the car toward the HUD.
+  carScreenPos() {
+    const v = new THREE.Vector3(this.car.position.x, 1.1, this.car.position.z);
+    v.project(this.camera);
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: rect.left + (v.x * 0.5 + 0.5) * rect.width,
+      y: rect.top + (-v.y * 0.5 + 0.5) * rect.height,
+    };
+  }
+
   // ---- Resize -------------------------------------------------------------
   resize() {
     const wrap = this.canvas.parentElement;

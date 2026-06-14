@@ -21,10 +21,12 @@ const Shop = (() => {
     lightOwned: ["red"], light: "red",
     bgOwned: ["day"], bg: "day",
     magnet: 0, shield: 0,
+    lastBonus: "", streak: 0,
   };
   let data = { ...DEFAULTS };
   let mem = null;
   let onChange = () => {};
+  let onUnlock = () => {};
   let tab = "paint";
 
   // Category descriptors → which catalog + which save keys.
@@ -81,8 +83,24 @@ const Shop = (() => {
       data[c.selKey] = id;                             // own it → just equip
     } else if (data.coins >= item.price) {
       data.coins -= item.price; owned.push(id); data[c.selKey] = id; Sfx.coin();
+      onUnlock(item.name);                             // toast "X unlocked!"
     } else { return; }                                 // can't afford
     persist(); onChange(); renderGarage();
+  }
+
+  // Grant a once-per-day coin bonus with a consecutive-day streak multiplier.
+  function dayKey(d) { return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+  function claimDailyBonus() {
+    const today = new Date();
+    const key = dayKey(today);
+    if (data.lastBonus === key) return null;           // already claimed today
+    const y = new Date(today); y.setDate(today.getDate() - 1);
+    data.streak = (data.lastBonus === dayKey(y)) ? (data.streak | 0) + 1 : 1;
+    data.lastBonus = key;
+    const amount = 25 + Math.min(data.streak - 1, 5) * 15;   // 25 → 100
+    data.coins += amount;
+    persist(); onChange();
+    return { amount, streak: data.streak };
   }
 
   // ---- UI -----------------------------------------------------------------
@@ -164,7 +182,12 @@ const Shop = (() => {
   }
 
   return {
-    init(opts) { onChange = (opts && opts.onChange) || (() => {}); load(); },
+    init(opts) {
+      onChange = (opts && opts.onChange) || (() => {});
+      onUnlock = (opts && opts.onUnlock) || (() => {});
+      load();
+    },
+    claimDailyBonus,
     get coins() { return data.coins; },
     get best() { return data.best; },
     get upgrades() { return { magnet: data.magnet | 0, shield: data.shield | 0 }; },

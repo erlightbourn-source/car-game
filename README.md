@@ -80,6 +80,10 @@ It's tabbed:
   Night, Candy. Each changes the sky, fog, sun, lighting and ground.
 - A **spinning car preview** is shown above the Garage so you can see your
   customization from every angle as you shop.
+- **Daily login bonus** — your first visit each day grants coins, with a
+  consecutive-day **streak** that grows the reward (25 → 100).
+- **Coin-collect flair** — grabbed coins fly up to the HUD counter, which pops.
+- **Unlock toasts** — buying a new item shows a "🔓 … unlocked!" message.
 - **⚙️ Perks** — 🧲 Coin Magnet (3 levels, pulls in nearby coins) and 🛡️ Shield
   (3 levels, absorb a crash and keep driving).
 

@@ -314,4 +314,44 @@ h1 {
 .item-tag { font-size: 12px; font-weight: bold; color: #5a6b7a; background: #fff; border-radius: 8px; padding: 1px 7px; }
 .item.equipped .item-tag { color: #fff; background: #2c3e50; }
 
+/* ---------- Toasts (daily bonus, unlocks) ---------- */
+.toast {
+  position: absolute;
+  top: 74px; left: 50%;
+  z-index: 35;
+  background: rgba(44, 62, 80, 0.92);
+  color: #fff;
+  font-size: 15px; font-weight: bold;
+  padding: 10px 18px; border-radius: 16px;
+  border: 2px solid rgba(255,255,255,0.5);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+  max-width: 86vw; text-align: center;
+  pointer-events: none;
+  animation: toastpop 2.8s ease forwards;
+}
+@keyframes toastpop {
+  0%   { opacity: 0; transform: translate(-50%, -14px) scale(0.9); }
+  10%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  82%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -10px) scale(0.96); }
+}
+
+/* ---------- Coin flying to the HUD ---------- */
+.fly-coin {
+  position: fixed;
+  z-index: 40;
+  font-size: 26px;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35));
+}
+
+/* HUD coin pop when a coin lands */
+.hud-coins.pulse { animation: coinpulse 0.34s ease; }
+@keyframes coinpulse {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.4); color: #ffe27a; }
+  100% { transform: scale(1); }
+}
+
 .hidden { display: none !important; }
