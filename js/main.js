@@ -78,7 +78,7 @@
     elOver.classList.add("hidden"); elHud.classList.add("hidden");
     renderer.setShowcase(false);
   }
-  function showStart() { ui = "start"; hideAll(); refreshLabels(); elStart.classList.remove("hidden"); }
+  function showStart() { ui = "start"; hideAll(); renderer.setShowcase(true); refreshLabels(); elStart.classList.remove("hidden"); }
   function showShop()  { ui = "shop";  hideAll(); renderer.setShowcase(true); Shop.renderGarage(); elShop.classList.remove("hidden"); }
   function showPlaying() {
     ui = "playing"; hideAll(); elHud.classList.remove("hidden");
@@ -190,9 +190,7 @@
       if (ev.type === "start") {
         Sfx.engineStart();
       } else if (ev.type === "steer") {
-        Sfx.steer();
-        const p = playerScreen();
-        renderer.burst(p.x - ev.dir * 30, p.y, 7, "#d9d2c4", 90);
+        renderer.burst(0, 0, 7, "#d9d2c4", 90);   // dust kick only (no sound)
       } else if (ev.type === "score") {
         elHudScore.textContent = ev.value;
         if (ev.value % 5 === 0) Sfx.milestone(); else Sfx.pass();

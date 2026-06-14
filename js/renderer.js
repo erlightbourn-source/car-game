@@ -711,16 +711,16 @@ class Renderer {
     }
   }
   _renderShowcase(dt) {
-    this._spin = (this._spin || 0) + dt * 0.7;
+    this._spin = (this._spin || 0) + dt * 0.6;
     this.car.position.set(0, 0, 0);
     this.car.rotation.set(0, this._spin, 0);
-    if (this.wheels) for (const w of this.wheels) w.rotation.x -= dt * 0.4;
-    // Nice 3/4 framing, then shift the rendered image UP so the car sits in the
-    // open strip above the (bottom-anchored) Garage panel.
+    if (this.wheels) for (const w of this.wheels) w.rotation.x -= dt * 0.35;
+    // Close 3/4 hero framing, shifted UP so the big car sits in the open area
+    // above the bottom-docked panel.
     const sz = this.r.getSize(new THREE.Vector2());
-    this.camera.setViewOffset(sz.x, sz.y, 0, Math.round(sz.y * 0.30), sz.x, sz.y);
-    this.camera.position.set(4.4, 2.5, 5.8);
-    this.camLook.set(0, 0.7, 0);
+    this.camera.setViewOffset(sz.x, sz.y, 0, Math.round(sz.y * 0.24), sz.x, sz.y);
+    this.camera.position.set(3.3, 1.95, 4.6);
+    this.camLook.set(0, 0.78, 0);
     this.camera.lookAt(this.camLook);
     this._poolResetAll(); this._poolHideUnused();   // hide any gameplay objects
     if (this.composer) this.composer.render(dt); else this.r.render(this.scene, this.camera);

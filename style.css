@@ -111,6 +111,33 @@ h1 {
 }
 .btn-2:active { box-shadow: 0 2px 0 #4a9ec2; }
 
+/* Bottom-docked menu screens so the showcased spinning car shows clearly above. */
+.screen.dock { align-items: flex-end; }
+.screen.dock .panel { margin-bottom: 14px; animation: slideup 0.32s cubic-bezier(0.2, 1, 0.4, 1) both; }
+
+.start-panel { max-width: 340px; padding: 22px 24px 18px; }
+.game-title {
+  font-size: 46px; line-height: 1; font-weight: 800;
+  color: var(--accent-dark);
+  letter-spacing: 1px;
+  text-shadow: 0 2px 0 #fff, 0 5px 0 rgba(0, 0, 0, 0.12);
+  margin-bottom: 4px;
+}
+.start-panel .tagline {
+  font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+  font-weight: bold; opacity: 0.55; margin-bottom: 16px;
+}
+.stat-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 14px; }
+.stat {
+  background: #f4f7fa; border-radius: 14px; padding: 8px 16px;
+  display: flex; flex-direction: column; align-items: center; min-width: 96px;
+}
+.stat-label { font-size: 11px; letter-spacing: 1px; opacity: 0.55; font-weight: bold; }
+.stat-val { font-size: 22px; font-weight: bold; color: var(--accent-dark); }
+.btn-big { font-size: 24px; padding: 15px 0; width: 100%; margin: 2px 0 0; }
+.start-panel .btn-2 { width: 100%; margin-top: 8px; }
+.start-panel .hint { margin-top: 12px; }
+
 .hint { font-size: 13px; opacity: 0.7; margin-top: 4px; }
 .hint b { color: var(--accent-dark); }
 .best { font-size: 15px; margin-top: 12px; font-weight: bold; opacity: 0.8; }
@@ -230,14 +257,16 @@ h1 {
   text-align: left;
 }
 .coin-balance {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: bold;
   color: #e0a81f;
   background: #fff7e6;
   border-radius: 14px;
-  padding: 6px 0;
+  padding: 4px 0;
   margin-bottom: 6px;
 }
+#screen-shop .panel.shop { padding: 16px 20px 14px; }
+.panel.shop h1 { font-size: 25px; margin-bottom: 4px; }
 
 .swatch-row {
   display: grid;
@@ -329,7 +358,7 @@ h1 {
 @keyframes slideup { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 .shop-items {
-  max-height: 34vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  max-height: 30vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: 2px; margin-bottom: 6px;
 }
 .item-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }

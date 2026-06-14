@@ -122,32 +122,34 @@ const Shop = (() => {
   }
 
   // ---- UI -----------------------------------------------------------------
-  function renderStreak() {
-    const el = document.getElementById("shop-streak");
-    if (!el) return;
-    const s = data.streak | 0;
-    let html = '<div class="streak-cells">';
+  // The daily-streak calendar lives in the Perks tab so the customization tabs
+  // stay short and the spinning car preview is clearly visible.
+  function buildStreakNode() {
+    const wrap = document.createElement("div");
+    wrap.className = "streak";
+    const s = data.streak | 0, best = data.maxStreak | 0;
+    let cells = '<div class="streak-cells">';
     for (let i = 0; i < STREAK_AMOUNTS.length; i++) {
       const day = i + 1;
       const cls = "streak-cell" + (day <= s ? " on" : "") + (day === s ? " today" : "");
-      html += `<div class="${cls}"><span class="sc-day">D${day}</span><span class="sc-amt">🪙${STREAK_AMOUNTS[i]}</span></div>`;
+      cells += `<div class="${cls}"><span class="sc-day">D${day}</span><span class="sc-amt">🪙${STREAK_AMOUNTS[i]}</span></div>`;
     }
-    html += "</div>";
-    const best = data.maxStreak | 0;
+    cells += "</div>";
     const note = streakInfo().claimedToday
       ? `🔥 ${s}-day streak · come back tomorrow!`
       : "🎁 Daily bonus ready — auto-claimed on launch!";
-    el.innerHTML = `<div class="streak-title">${note}` +
-      (best > 1 ? ` <span class="streak-best">Best: ${best}🔥</span>` : "") + `</div>` + html;
+    wrap.innerHTML = `<div class="streak-title">${note}` +
+      (best > 1 ? ` <span class="streak-best">Best: ${best}🔥</span>` : "") + `</div>` + cells;
+    return wrap;
   }
 
   function renderGarage() {
     document.getElementById("shop-coins").textContent = data.coins;
-    renderStreak();
     renderTabs();
     const host = document.getElementById("shop-items");
     host.innerHTML = "";
     if (tab === "perks") {
+      host.appendChild(buildStreakNode());
       host.appendChild(upgradeRow("🧲 Coin Magnet", "magnet", CONFIG.MAGNET_PRICES, "Pulls coins in from nearby lanes"));
       host.appendChild(upgradeRow("🛡️ Shield", "shield", CONFIG.SHIELD_PRICES, "Absorbs a crash so you keep driving"));
     } else {

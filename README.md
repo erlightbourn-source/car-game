@@ -1,4 +1,4 @@
-# 🚗 Zippy's Lane Dash
+# 🚗 Lane Rush
 
 A bright, kid-friendly **first-person endless driving** game in the style of
 Subway Surfers — but on the road. You look out down a road that recedes to the
