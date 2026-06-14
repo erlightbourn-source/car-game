@@ -43,9 +43,12 @@ class GameEngine {
     this.invuln = 0;               // seconds of post-shield invulnerability
     this.sinceSpawn = c.SPAWN_GAP_START - c.LEAD_IN; // brief empty-road intro
     this.sinceCoin = 0;
-    this.powerups = [];            // {lane, frac, z, collected}
+    this.powerups = [];            // {lane, frac, z, collected, type}
     this.sincePower = 0;
     this.doubler = 0;              // seconds remaining of ×2 coin doubler
+    this.slow = 0;                 // seconds remaining of slow-mo
+    this.magnetBoost = 0;          // seconds remaining of boosted magnet (from ×2)
+    this.curSpeed = c.START_SPEED; // effective world speed this frame (after slow-mo)
     this.scroll = 0;               // for the renderer's road animation
     this.events = [];
     this._lastCoinLane = -1;
@@ -143,7 +146,10 @@ class GameEngine {
     for (let i = 0; i < n; i++) if (!occupied.has(i)) free.push(i);
     const lane = free.length ? free[Math.floor(Math.random() * free.length)]
       : Math.floor(Math.random() * n);
-    this.powerups.push({ lane, frac: c.LANES[lane], z: c.FAR_Z, collected: false });
+    // Weighted-random type: ×2 most common, then slow-mo, then shield.
+    const r = Math.random();
+    const type = r < 0.5 ? "x2" : r < 0.8 ? "slow" : "shield";
+    this.powerups.push({ lane, frac: c.LANES[lane], z: c.FAR_Z, collected: false, type });
   }
 
   _die() {
@@ -187,8 +193,13 @@ class GameEngine {
       this.doubler = Math.max(0, this.doubler - dt);
       if (this.doubler === 0) this.events.push({ type: "doublerend" });
     }
+    if (this.slow > 0) this.slow = Math.max(0, this.slow - dt);
+    if (this.magnetBoost > 0) this.magnetBoost = Math.max(0, this.magnetBoost - dt);
+
     this.speed = Math.min(c.MAX_SPEED, c.START_SPEED + this.score * c.SPEED_PER_PASS);
-    const ds = this.speed * dt;
+    const moveSpeed = this.slow > 0 ? this.speed * c.SLOW_FACTOR : this.speed;
+    this.curSpeed = moveSpeed;
+    const ds = moveSpeed * dt;     // slow-mo slows the world without affecting difficulty
     this.distance += ds;
     this.scroll += ds;
 
@@ -220,7 +231,8 @@ class GameEngine {
     }
 
     // Magnet: pull nearby coins (and power-ups) toward the car as they approach.
-    const range = this.magnetRange();
+    // The ×2 power-up temporarily boosts the reach so it auto-vacuums coins.
+    const range = Math.max(this.magnetRange(), this.magnetBoost > 0 ? c.MAGNET_BOOST : 0);
     const pf = this.player.laneFrac;
     if (range > 0) {
       for (const k of this.coins) {
@@ -237,13 +249,20 @@ class GameEngine {
 
     const pickTol = Math.max(c.COIN_BASE_TOL, range);
 
-    // Resolve power-ups crossing the player's plane → activate the ×2 doubler.
+    // Resolve power-ups crossing the player's plane → apply effect by type.
     for (const k of this.powerups) {
       if (!k.collected && k.z <= c.PLAYER_Z) {
         k.collected = true;
         if (Math.abs(k.frac - pf) <= pickTol) {
-          this.doubler = c.DOUBLER_TIME;
-          this.events.push({ type: "powerup", kind: "x2" });
+          if (k.type === "x2") {
+            this.doubler = c.DOUBLER_TIME;
+            this.magnetBoost = c.DOUBLER_TIME;      // ×2 also auto-vacuums coins
+          } else if (k.type === "slow") {
+            this.slow = c.SLOW_TIME;
+          } else if (k.type === "shield") {
+            this.shields += 1;
+          }
+          this.events.push({ type: "powerup", kind: k.type });
         }
       }
     }

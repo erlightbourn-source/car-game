@@ -509,8 +509,26 @@ class Renderer {
     g.add(disc);
     return g;
   }
-  _makePower() {
-    // A glowing gold star (the ×2 coin doubler). Emissive so bloom catches it.
+  _makePower(type) {
+    // Glowing, emissive pickups (bloom catches them). One mesh per type.
+    if (type === "slow") {
+      // Slow-mo: a teal ring (hourglass-ish vibe).
+      return new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.16, 12, 24),
+        new THREE.MeshStandardMaterial({ color: 0x57e08a, emissive: 0x2fd070, emissiveIntensity: 1.3, metalness: 0.4, roughness: 0.35, envMap: this.envTex }));
+    }
+    if (type === "shield") {
+      // Shield: a blue gem with a halo ring.
+      const g = new THREE.Group();
+      const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.4, 0),
+        new THREE.MeshStandardMaterial({ color: 0x5cc8ff, emissive: 0x33aaff, emissiveIntensity: 1.3, metalness: 0.5, roughness: 0.3, envMap: this.envTex }));
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.06, 10, 24),
+        new THREE.MeshStandardMaterial({ color: 0x9fe3ff, emissive: 0x66ccff, emissiveIntensity: 1.1 }));
+      ring.rotation.x = Math.PI / 2;
+      g.add(core); g.add(ring);
+      g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+      return g;
+    }
+    // default: ×2 gold star
     if (!this._starGeo) {
       const s = new THREE.Shape();
       const spikes = 5, outer = 0.62, inner = 0.27;
@@ -718,7 +736,7 @@ class Renderer {
 
     // Scroll the road & grass textures with travelled distance.
     // Keep offsets wrapped to [0,1) so they never drift into float-precision jitter.
-    const dScroll = engine.state === "playing" ? engine.speed * dt
+    const dScroll = engine.state === "playing" ? (engine.curSpeed || engine.speed) * dt
       : (engine.state === "ready" ? c.START_SPEED * 0.5 * dt : engine.speed * dt);
     const uPerUnit = this.roadRepeat / this.roadLen;
     this.roadTex.offset.y = (this.roadTex.offset.y - dScroll * this.DEPTH * uPerUnit) % 1;
@@ -768,9 +786,11 @@ class Renderer {
     for (const k of (engine.powerups || [])) {
       const wz = this._wz(k.z);
       if (wz < -160 || wz > 16) continue;
-      const m = this._poolGet("power", () => this._makePower());
+      const type = k.type || "x2";
+      const m = this._poolGet("pw_" + type, () => this._makePower(type));
       m.position.set(this._wx(k.frac), 0.95 + Math.sin(this.t * 4 + k.z) * 0.12, wz);
-      m.rotation.z = this.t * 2.4 + k.z;
+      if (type === "x2") m.rotation.z = this.t * 2.4 + k.z;
+      else m.rotation.y = this.t * 2.4 + k.z;
       const s = 1 + Math.sin(this.t * 6 + k.z) * 0.1;
       m.scale.set(s, s, s);
     }

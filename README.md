@@ -37,6 +37,36 @@ Other one-drag hosts that work the same way: **tiiny.host**, **GitHub Pages**
   off), **HSTS**, and cross-origin isolation headers. Netlify/Cloudflare apply
   `_headers` automatically; the CSP `<meta>` protects other hosts too.
 
+## 📈 Scaling & robustness audit (built for 1000s of users)
+
+This is a **100% client-side static site** — there is **no backend, no database,
+and no per-user server state**. Every player runs the game entirely in their own
+browser with their own `localStorage`. That means concurrency scales for free:
+
+- **Hosting**: served as static files from a CDN (GitHub Pages / Cloudflare /
+  Netlify). 1000s of concurrent players is a non-event for a CDN. *Note:* GitHub
+  Pages has a ~100 GB/month soft bandwidth cap; with browser caching that's
+  comfortably tens of thousands of plays, but for very large scale point the same
+  repo at **Cloudflare Pages** (unlimited bandwidth, and it honors the `_headers`).
+- **No shared state / no race conditions** — nothing to contend on; each device
+  is independent.
+
+Client-side hardening done in this pass:
+- **Bounded memory** — all road objects (obstacles, coins, power-ups, scenery)
+  use **object pools** (reused, never accumulate); particles are culled each
+  frame; scrolling texture offsets are wrapped; transient DOM (fly-coins, toasts)
+  is **capped** (≤14 / ≤3) and auto-removed.
+- **Throttled persistence** — coin banking **debounces** `localStorage` writes to
+  ≤1/sec (coalesced), flushed on tab hide, so magnet bursts can't jank weak phones.
+- **Cheap hot path** — equipping customization only re-applies the 3D scene on an
+  actual selection change, not on every coin.
+- **Graceful failure** — WebGL-unavailable shows a friendly message; **context
+  loss auto-recovers**; a per-frame render fallback drops bloom rather than crash.
+- **Mobile budget** — phones auto-run a lighter path (no bloom, smaller shadows,
+  capped pixel ratio, no MSAA).
+- **Locked-down** — strict CSP, vendored deps (no third-party CDNs), no network
+  calls at runtime.
+
 ## ▶️ How to open & play
 
 **Easiest:** just double-click `index.html` — it runs straight in any modern
@@ -86,6 +116,12 @@ It's tabbed:
 - **Unlock toasts** — buying a new item shows a "🔓 … unlocked!" message.
 - **⚙️ Perks** — 🧲 Coin Magnet (3 levels, pulls in nearby coins) and 🛡️ Shield
   (3 levels, absorb a crash and keep driving).
+
+### Power-ups (collect on the road, mid-run)
+- **×2 Coins** (gold star) — doubles coins for 10s *and* auto-vacuums nearby coins.
+- **🐌 Slow-mo** (teal ring) — slows the world for 7s so you can thread tight gaps.
+- **🛡️ Shield** (blue gem) — grants an extra one-hit shield for this run.
+Each shows a live countdown badge in the HUD.
 
 Buy once, then equip; selections apply instantly to the 3D car/world and persist.
 Owned items, equipped choices, coins and best score all save via `localStorage`.

@@ -37,6 +37,8 @@
   const elOver = $("screen-over"), elHud = $("hud");
   const elHudScore = $("hud-score"), elHudCoins = $("hud-coins-val"), elHudSpeed = $("hud-speed-val");
   const elDoubler = $("hud-doubler"), elDoublerTime = $("hud-doubler-time");
+  const elSlow = $("hud-slow"), elSlowTime = $("hud-slow-time");
+  const elShieldBadge = $("hud-shield"), elShieldN = $("hud-shield-n");
 
   // --- Persistence / economy ----------------------------------------------
   function refreshLabels() {
@@ -51,9 +53,11 @@
     renderer.setDesign(Shop.equippedDesign());
     renderer.setBackground(Shop.equippedBackground());
   }
-  function onShopChange() { refreshLabels(); applyCustomization(); }
+  // onChange = cheap label refresh (fires on every coin); onSelect = re-apply the
+  // 3D car/world (fires only when a customization is equipped). Split for perf.
   Shop.init({
-    onChange: onShopChange,
+    onChange: refreshLabels,
+    onSelect: applyCustomization,
     onUnlock: (name) => { showToast("🔓 " + name + " unlocked!"); Sfx.unlock(); },
   });
   engine.best = Shop.best;
@@ -79,7 +83,7 @@
   function showPlaying() {
     ui = "playing"; hideAll(); elHud.classList.remove("hidden");
     elHudScore.textContent = "0"; elHudCoins.textContent = "0"; elHudSpeed.textContent = "0";
-    elDoubler.classList.add("hidden");
+    elDoubler.classList.add("hidden"); elSlow.classList.add("hidden"); elShieldBadge.classList.add("hidden");
   }
   function showOver() {
     ui = "over"; hideAll();
@@ -168,6 +172,9 @@
   const onResize = () => renderer.resize();
   window.addEventListener("resize", onResize);
   window.addEventListener("orientationchange", onResize);
+  // Flush any debounced coin save before the page is hidden/closed.
+  window.addEventListener("pagehide", () => Shop.flush());
+  document.addEventListener("visibilitychange", () => { if (document.hidden) Shop.flush(); });
 
   // --- Helpers for particle positions in screen space ----------------------
   function playerScreen() {
@@ -195,9 +202,13 @@
         renderer.burst(0, 0, 6, engine.doubler > 0 ? "#86e1ff" : "#ffe07a", 90);
         flyCoinToHud();                             // 2D coin flies to the HUD
       } else if (ev.type === "powerup") {
-        Sfx.powerup();
-        showToast("💰 ×2 Coins!");
-        renderer.burst(0, 0, 22, "#ffd23f", 200);
+        if (ev.kind === "slow") {
+          Sfx.slow(); showToast("🐌 Slow-mo!"); renderer.burst(0, 0, 20, "#57e08a", 180);
+        } else if (ev.kind === "shield") {
+          Sfx.shield(); showToast("🛡️ Shield up!"); renderer.burst(0, 0, 20, "#66ccff", 180);
+        } else {
+          Sfx.powerup(); showToast("💰 ×2 Coins!"); renderer.burst(0, 0, 22, "#ffd23f", 200);
+        }
       } else if (ev.type === "shieldhit") {
         Sfx.shield();
         const p = playerScreen();
@@ -217,11 +228,16 @@
   }
 
   // --- Juice: toasts, coin-to-HUD flight, HUD pulse ------------------------
+  // Caps keep the DOM bounded even under coin bursts / rapid events (1000s of
+  // users on weak devices) — purely cosmetic elements, safe to drop.
   function showToast(text) {
+    const wrap = document.getElementById("game-wrap");
+    const existing = wrap.querySelectorAll(".toast");
+    if (existing.length >= 3) existing[0].remove();   // never pile up
     const t = document.createElement("div");
     t.className = "toast";
     t.textContent = text;
-    document.getElementById("game-wrap").appendChild(t);
+    wrap.appendChild(t);
     t.addEventListener("animationend", () => t.remove());
   }
 
@@ -234,6 +250,8 @@
   function flyCoinToHud() {
     const hud = document.querySelector(".hud-coins");
     if (!hud) return;
+    // Cap concurrent fly-coins so a coin burst can't flood the DOM.
+    if (document.querySelectorAll(".fly-coin").length >= 14) { pulseHud(); return; }
     const start = renderer.carScreenPos();
     const r = hud.getBoundingClientRect();
     const end = { x: r.left + 14, y: r.top + r.height / 2 };
@@ -272,13 +290,13 @@
       const sp01 = (engine.speed - CONFIG.START_SPEED) / (CONFIG.MAX_SPEED - CONFIG.START_SPEED);
       Sfx.setEngine(Math.max(0, Math.min(1, sp01)));
       elHudSpeed.textContent = Math.round(engine.speed * CONFIG.KMH_PER_SPEED);
-      // ×2 doubler countdown badge
-      if (engine.doubler > 0) {
-        elDoublerTime.textContent = Math.ceil(engine.doubler);
-        elDoubler.classList.remove("hidden");
-      } else {
-        elDoubler.classList.add("hidden");
-      }
+      // Power-up status badges
+      if (engine.doubler > 0) { elDoublerTime.textContent = Math.ceil(engine.doubler); elDoubler.classList.remove("hidden"); }
+      else elDoubler.classList.add("hidden");
+      if (engine.slow > 0) { elSlowTime.textContent = Math.ceil(engine.slow); elSlow.classList.remove("hidden"); }
+      else elSlow.classList.add("hidden");
+      if (engine.shields > 0) { elShieldN.textContent = engine.shields; elShieldBadge.classList.remove("hidden"); }
+      else elShieldBadge.classList.add("hidden");
     }
     requestAnimationFrame(frame);
   }

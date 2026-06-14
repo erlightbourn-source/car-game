@@ -21,13 +21,15 @@ const Shop = (() => {
     lightOwned: ["red"], light: "red",
     bgOwned: ["day"], bg: "day",
     magnet: 0, shield: 0,
-    lastBonus: "", streak: 0,
+    lastBonus: "", streak: 0, maxStreak: 0,
   };
   let data = { ...DEFAULTS };
   let mem = null;
-  let onChange = () => {};
+  let onChange = () => {};   // cheap: refresh coin/best labels (fires often)
+  let onSelect = () => {};   // expensive: re-apply 3D customization (fires only on equip)
   let onUnlock = () => {};
   let tab = "paint";
+  let saveTimer = null;
 
   // Category descriptors → which catalog + which save keys.
   const CATS = {
@@ -59,7 +61,15 @@ const Shop = (() => {
   }
   function persist() {
     mem = { ...data };
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
     try { window.localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {}
+  }
+  // Coalesce frequent writes (e.g. coin banking during a magnet burst) into one
+  // localStorage write per second — synchronous storage I/O can jank weak devices.
+  function persistSoon() {
+    mem = { ...data };
+    if (saveTimer) return;
+    saveTimer = setTimeout(() => { saveTimer = null; persist(); }, 1000);
   }
 
   const hex = (n) => "#" + ((n >>> 0) & 0xffffff).toString(16).padStart(6, "0");
@@ -85,7 +95,7 @@ const Shop = (() => {
       data.coins -= item.price; owned.push(id); data[c.selKey] = id;
       onUnlock(item.name);                             // toast + unlock sound (host)
     } else { return; }                                 // can't afford
-    persist(); onChange(); renderGarage();
+    persist(); onChange(); onSelect(); renderGarage();
   }
 
   // Grant a once-per-day coin bonus with a consecutive-day streak multiplier.
@@ -96,6 +106,7 @@ const Shop = (() => {
     if (data.lastBonus === key) return null;           // already claimed today
     const y = new Date(today); y.setDate(today.getDate() - 1);
     data.streak = (data.lastBonus === dayKey(y)) ? (data.streak | 0) + 1 : 1;
+    data.maxStreak = Math.max(data.maxStreak | 0, data.streak);
     data.lastBonus = key;
     const amount = 25 + Math.min(data.streak - 1, 5) * 15;   // 25 → 100
     data.coins += amount;
@@ -106,7 +117,8 @@ const Shop = (() => {
   // Streak data for the Garage calendar.
   const STREAK_AMOUNTS = [25, 40, 55, 70, 85, 100, 100];
   function streakInfo() {
-    return { streak: data.streak | 0, claimedToday: data.lastBonus === dayKey(new Date()), amounts: STREAK_AMOUNTS };
+    return { streak: data.streak | 0, maxStreak: data.maxStreak | 0,
+      claimedToday: data.lastBonus === dayKey(new Date()), amounts: STREAK_AMOUNTS };
   }
 
   // ---- UI -----------------------------------------------------------------
@@ -121,10 +133,12 @@ const Shop = (() => {
       html += `<div class="${cls}"><span class="sc-day">D${day}</span><span class="sc-amt">🪙${STREAK_AMOUNTS[i]}</span></div>`;
     }
     html += "</div>";
+    const best = data.maxStreak | 0;
     const note = streakInfo().claimedToday
       ? `🔥 ${s}-day streak · come back tomorrow!`
-      : "🎁 Daily bonus ready — it's auto-claimed on launch!";
-    el.innerHTML = `<div class="streak-title">${note}</div>` + html;
+      : "🎁 Daily bonus ready — auto-claimed on launch!";
+    el.innerHTML = `<div class="streak-title">${note}` +
+      (best > 1 ? ` <span class="streak-best">Best: ${best}🔥</span>` : "") + `</div>` + html;
   }
 
   function renderGarage() {
@@ -208,15 +222,17 @@ const Shop = (() => {
   return {
     init(opts) {
       onChange = (opts && opts.onChange) || (() => {});
+      onSelect = (opts && opts.onSelect) || (() => {});
       onUnlock = (opts && opts.onUnlock) || (() => {});
       load();
     },
     claimDailyBonus, streakInfo,
+    flush() { if (saveTimer) persist(); },   // force-write any pending coins (page hide)
     get coins() { return data.coins; },
     get best() { return data.best; },
     get upgrades() { return { magnet: data.magnet | 0, shield: data.shield | 0 }; },
     equippedColors, equippedDesign, equippedLight, equippedBackground,
-    addCoins(n) { data.coins += n; persist(); onChange(); },
+    addCoins(n) { data.coins += n; persistSoon(); onChange(); },
     setBest(v) { if (v > data.best) { data.best = v; persist(); onChange(); } },
     renderGarage,
   };

@@ -75,6 +75,10 @@ const Sfx = (() => {
       blip(380, 1180, 0.26, "sawtooth", 0.12);
       setTimeout(() => blip(880, 1500, 0.20, "square", 0.08), 70);
     },
+    slow() {                                                 // descending "wooomp" (slow-mo)
+      blip(900, 260, 0.4, "sine", 0.12);
+      blip(600, 180, 0.42, "triangle", 0.07);
+    },
 
     // --- Engine drone -----------------------------------------------------
     engineStart() {

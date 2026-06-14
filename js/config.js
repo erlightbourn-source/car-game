@@ -51,9 +51,12 @@ const CONFIG = {
   MAGNET_RANGE: [0, 0.7, 1.0, 1.4],   // pickup/pull lateral reach by magnet level
   COIN_TRAIL_KEEP: 0.6,  // chance a coin reuses the previous coin's lane (forms trails)
 
-  // --- Power-ups ---
-  POWER_GAP: 135,        // world-distance between ×2 power-up spawns (rare/special)
+  // --- Power-ups (one spawns every POWER_GAP; type is weighted-random) ---
+  POWER_GAP: 175,        // world-distance between power-up spawns (rarer = more special)
   DOUBLER_TIME: 10,      // seconds the ×2 coin doubler lasts
+  MAGNET_BOOST: 1.45,    // lateral magnet reach while ×2 is active (auto-vacuums coins)
+  SLOW_TIME: 7,          // seconds slow-mo lasts
+  SLOW_FACTOR: 0.55,     // world speed multiplier during slow-mo
 
   // --- Upgrades (max level 3 each) ---
   MAGNET_PRICES: [0, 80, 180, 320],
