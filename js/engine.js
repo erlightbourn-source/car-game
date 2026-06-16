@@ -50,6 +50,7 @@ class GameEngine {
     this.sincePower = 0;
     this.doubler = 0;              // seconds remaining of ×2 coin doubler
     this.slow = 0;                 // seconds remaining of slow-mo
+    this.nmSlow = 0;               // brief near-miss-combo slow-mo
     this.magnetBoost = 0;          // seconds remaining of boosted magnet (from ×2)
     this.curSpeed = c.START_SPEED; // effective world speed this frame (after slow-mo)
     this.scroll = 0;               // for the renderer's road animation
@@ -210,10 +211,12 @@ class GameEngine {
       if (this.doubler === 0) this.events.push({ type: "doublerend" });
     }
     if (this.slow > 0) this.slow = Math.max(0, this.slow - dt);
+    if (this.nmSlow > 0) this.nmSlow = Math.max(0, this.nmSlow - dt);   // brief near-miss slow-mo
     if (this.magnetBoost > 0) this.magnetBoost = Math.max(0, this.magnetBoost - dt);
 
     this.speed = Math.min(c.MAX_SPEED, c.START_SPEED + this.score * c.SPEED_PER_PASS);
-    const moveSpeed = this.slow > 0 ? this.speed * c.SLOW_FACTOR : this.speed;
+    const moveSpeed = this.nmSlow > 0 ? this.speed * 0.45
+      : (this.slow > 0 ? this.speed * c.SLOW_FACTOR : this.speed);
     this.curSpeed = moveSpeed;
     const ds = moveSpeed * dt;     // slow-mo slows the world without affecting difficulty
     this.distance += ds;
@@ -328,9 +331,11 @@ class GameEngine {
           this.combo += 1;
           this.bestCombo = Math.max(this.bestCombo, this.combo);
           this.nearMisses += 1;
-          const bonus = Math.min(this.combo, c.COMBO_CAP);
+          let bonus = Math.min(this.combo, c.COMBO_CAP);
+          const milestone = this.combo % 5 === 0;     // every 5th = dramatic moment
+          if (milestone) { bonus += 10; this.nmSlow = 0.45; }
           this.runCoins += bonus;
-          this.events.push({ type: "nearmiss", combo: this.combo, bonus });
+          this.events.push({ type: "nearmiss", combo: this.combo, bonus, milestone });
         } else {
           this.combo = 0;                  // played it safe → streak resets
         }

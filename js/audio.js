@@ -65,12 +65,55 @@ const Sfx = (() => {
     o.connect(g).connect(musicGain);
     o.start(time); o.stop(time + dur + 0.02);
   }
+  // Percussion via a shared noise buffer + a sine kick (routed through musicGain).
+  let noiseBuf = null;
+  function noise() {
+    if (!noiseBuf) {
+      const len = Math.floor(ctx.sampleRate * 0.4);
+      noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    }
+    return noiseBuf;
+  }
+  function drum(time, type) {
+    if (muted || !ctx) return;
+    if (type === "kick") {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.setValueAtTime(150, time); o.frequency.exponentialRampToValueAtTime(45, time + 0.12);
+      g.gain.setValueAtTime(0.16, time); g.gain.exponentialRampToValueAtTime(0.0001, time + 0.16);
+      o.connect(g).connect(musicGain); o.start(time); o.stop(time + 0.18);
+    } else {
+      const src = ctx.createBufferSource(); src.buffer = noise();
+      const f = ctx.createBiquadFilter(), g = ctx.createGain();
+      if (type === "hat") {
+        f.type = "highpass"; f.frequency.value = 7500;
+        g.gain.setValueAtTime(0.04, time); g.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
+      } else { // snare
+        f.type = "bandpass"; f.frequency.value = 1900; f.Q.value = 0.8;
+        g.gain.setValueAtTime(0.09, time); g.gain.exponentialRampToValueAtTime(0.0001, time + 0.18);
+      }
+      src.connect(f).connect(g).connect(musicGain); src.start(time); src.stop(time + 0.22);
+    }
+  }
+  // 32-step (8-bar) loop: bass + pad + arpeggio + drums, with a lead in the B half.
   function scheduleNote(time, s) {
     const chord = CH[Math.floor(s / 4) % 4];
-    if (s % 4 === 0) tone(chord[0] / 2, time, STEP * 3.6, "triangle", 0.09);  // bass
+    if (s % 4 === 0) {
+      tone(chord[0] / 2, time, STEP * 3.6, "triangle", 0.085);                 // bass
+      tone(chord[0], time, STEP * 3.8, "sine", 0.022);                         // pad
+      tone(chord[1], time, STEP * 3.8, "sine", 0.018);
+      tone(chord[2], time, STEP * 3.8, "sine", 0.018);
+    }
     const arp = [0, 1, 2, 1][s % 4];
-    tone(chord[arp] * 2, time, STEP * 0.9, "sine", 0.05);                     // sparkle
-    tone(chord[arp], time, STEP * 1.4, "triangle", 0.045);                    // mid
+    tone(chord[arp] * 2, time, STEP * 0.85, "sine", 0.045);                    // sparkle
+    tone(chord[arp], time, STEP * 1.3, "triangle", 0.04);                      // mid
+    // drums
+    if (s % 2 === 0) drum(time, "kick");
+    drum(time, "hat");
+    if (s % 4 === 2) drum(time, "snare");
+    // lead melody only in the second half of the loop (variation)
+    if (s >= 16) { const lead = [chord[2], 0, chord[1], chord[2]][s % 4]; if (lead) tone(lead * 2, time, STEP * 0.8, "square", 0.03); }
   }
   function startMusic() {
     const ac = ensure(); if (!ac || musicTimer) return;
@@ -79,7 +122,7 @@ const Sfx = (() => {
       if (!ctx) return;
       while (nextNote < ctx.currentTime + 0.15) {
         scheduleNote(nextNote, step);
-        nextNote += STEP; step = (step + 1) % 16;
+        nextNote += STEP; step = (step + 1) % 32;
       }
     }, 25);
   }
