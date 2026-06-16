@@ -33,10 +33,13 @@ class GameEngine {
       lane: mid,                   // target lane index (committed)
       laneFrac: c.LANES[mid],      // current lateral fraction (smoothly tweened)
     };
-    this.obstacles = [];           // {lane, z, type, resolved}
+    this.obstacles = [];           // {lane, z, type, resolved, frac, weaveTarget}
     this.coins = [];               // {lane, frac, z, collected}
     this.score = 0;
     this.runCoins = 0;             // coins collected this run
+    this.combo = 0;                // consecutive near-miss dodges (risk/reward)
+    this.bestCombo = 0;            // best combo this run (for missions)
+    this.nearMisses = 0;           // total near-misses this run (for missions)
     this.distance = 0;             // cosmetic odometer (world units)
     this.speed = c.START_SPEED;
     this.shields = this.upgrades.shield | 0;
@@ -54,16 +57,18 @@ class GameEngine {
     this._lastCoinLane = -1;
   }
 
-  // The lane index the car visually occupies right now (nearest to laneFrac).
-  currentLane() {
+  // Nearest lane index to a lateral fraction.
+  _laneOf(frac) {
     const L = this.cfg.LANES;
     let best = 0, bd = Infinity;
     for (let i = 0; i < L.length; i++) {
-      const d = Math.abs(this.player.laneFrac - L[i]);
+      const d = Math.abs(frac - L[i]);
       if (d < bd) { bd = d; best = i; }
     }
     return best;
   }
+  // The lane index the car visually occupies right now.
+  currentLane() { return this._laneOf(this.player.laneFrac); }
 
   magnetRange() {
     const m = this.cfg.MAGNET_RANGE;
@@ -111,11 +116,21 @@ class GameEngine {
     if (canDouble && n === 3 && Math.random() < chance) {
       // Double row: always block the two OUTER lanes, leaving the CENTER free.
       // Center is reachable from any lane in a single move, so it's always fair.
-      this.obstacles.push({ lane: 0, z: c.FAR_Z, type: pick(), resolved: false });
-      this.obstacles.push({ lane: 2, z: c.FAR_Z, type: pick(), resolved: false });
+      this.obstacles.push({ lane: 0, z: c.FAR_Z, type: pick(), resolved: false, frac: c.LANES[0] });
+      this.obstacles.push({ lane: 2, z: c.FAR_Z, type: pick(), resolved: false, frac: c.LANES[2] });
     } else {
       const lane = Math.floor(Math.random() * n);
-      this.obstacles.push({ lane, z: c.FAR_Z, type: pick(), resolved: false });
+      const o = { lane, z: c.FAR_Z, type: pick(), resolved: false, frac: c.LANES[lane] };
+      // Escalation: single obstacles may WEAVE to an adjacent lane as they
+      // approach, forcing the player to read their final position. (Singles
+      // only — keeps the fairness guarantee that ≥1 lane is always clear.)
+      if (this.score >= c.WEAVE_AT_SCORE && Math.random() < Math.min(c.WEAVE_MAX_CHANCE, this.score * 0.015)) {
+        const adj = [];
+        if (lane - 1 >= 0) adj.push(lane - 1);
+        if (lane + 1 < n) adj.push(lane + 1);
+        o.weaveTarget = c.LANES[adj[Math.floor(Math.random() * adj.length)]];
+      }
+      this.obstacles.push(o);
     }
   }
 
@@ -155,6 +170,7 @@ class GameEngine {
   _die() {
     if (this.state === "dead") return;
     this.state = "dead";
+    this.combo = 0;
     if (this.score > this.best) {
       this.best = this.score;
       this.events.push({ type: "newbest" });
@@ -203,8 +219,13 @@ class GameEngine {
     this.distance += ds;
     this.scroll += ds;
 
-    // Advance world toward the camera.
-    for (const o of this.obstacles) o.z -= ds;
+    // Advance world toward the camera; weaving obstacles drift to their target lane.
+    for (const o of this.obstacles) {
+      o.z -= ds;
+      if (o.weaveTarget !== undefined && o.frac !== o.weaveTarget) {
+        o.frac += (o.weaveTarget - o.frac) * Math.min(1, dt * 0.55);
+      }
+    }
     for (const k of this.coins) k.z -= ds;
     for (const k of this.powerups) k.z -= ds;
 
@@ -281,17 +302,20 @@ class GameEngine {
     }
     this.coins = this.coins.filter((k) => !k.collected && k.z > -8);
 
-    // Resolve obstacles crossing the player's plane.
-    // Collision uses the COMMITTED lane (player.lane) — forgiving & predictable.
+    // Resolve obstacles crossing the player's plane. The obstacle's EFFECTIVE
+    // lane is wherever it is now (handles weaving). Dodging an *adjacent* lane
+    // is a near-miss → builds combo + bonus coins; dodging from far loses combo.
     for (const o of this.obstacles) {
       if (o.resolved || o.z > c.PLAYER_Z) continue;
       o.resolved = true;
-      if (o.lane === this.player.lane) {
+      const oLane = this._laneOf(o.frac !== undefined ? o.frac : c.LANES[o.lane]);
+      if (oLane === this.player.lane) {
         if (this.invuln > 0) {
           o.z = -20;                       // already protected; shrug it off
         } else if (this.shields > 0) {
           this.shields -= 1;
           this.invuln = c.INVULN_TIME;
+          this.combo = 0;
           o.z = -20;
           this.events.push({ type: "shieldhit", shields: this.shields });
         } else {
@@ -300,6 +324,16 @@ class GameEngine {
         }
       } else {
         this.score += 1;
+        if (Math.abs(oLane - this.player.lane) === 1) {
+          this.combo += 1;
+          this.bestCombo = Math.max(this.bestCombo, this.combo);
+          this.nearMisses += 1;
+          const bonus = Math.min(this.combo, c.COMBO_CAP);
+          this.runCoins += bonus;
+          this.events.push({ type: "nearmiss", combo: this.combo, bonus });
+        } else {
+          this.combo = 0;                  // played it safe → streak resets
+        }
         this.events.push({ type: "score", value: this.score });
       }
     }

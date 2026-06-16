@@ -27,7 +27,12 @@ const CONFIG = {
   // --- Lanes (lateral fractions of the road half-width, -1..1) ---
   LANES: [-0.62, 0, 0.62],
   PLAYER_Z: 6,           // world depth the player's car sits at (collision plane)
-  LANE_LERP: 12,         // steering smoothing toward target lane (higher = snappier)
+  LANE_LERP: 17,         // steering smoothing toward target lane (higher = snappier)
+
+  // --- Risk/reward hook: combo + near-miss ---
+  COMBO_CAP: 12,         // max per-near-miss coin bonus
+  WEAVE_AT_SCORE: 12,    // score at which weaving obstacles start appearing
+  WEAVE_MAX_CHANCE: 0.5, // max probability an obstacle weaves to an adjacent lane
 
   // --- Speed / difficulty ramp ---
   START_SPEED: 30,       // world units per second
@@ -69,12 +74,13 @@ const CONFIG = {
 // PAINT — body colour. (Kept as `CARS` for back-compat.)
 const CARS = [
   { id: "red",    name: "Ruby",   price: 0,   body: "#ff5b6e", roof: "#ff7286", bumper: "#e8485b" },
-  { id: "blue",   name: "Sky",    price: 50,  body: "#4aa3ff", roof: "#6fb6ff", bumper: "#3b86db" },
+  { id: "blue",   name: "Sky",    price: 40,  body: "#4aa3ff", roof: "#6fb6ff", bumper: "#3b86db" },
   { id: "green",  name: "Mint",   price: 90,  body: "#3ec98a", roof: "#5fd9a1", bumper: "#33a873" },
-  { id: "white",  name: "Pearl",  price: 160, body: "#eef2f7", roof: "#ffffff", bumper: "#cfd6df" },
-  { id: "black",  name: "Onyx",   price: 200, body: "#3a3f49", roof: "#4a505c", bumper: "#2a2e36" },
-  { id: "purple", name: "Grape",  price: 260, body: "#9b6cff", roof: "#b288ff", bumper: "#7f53db" },
-  { id: "gold",   name: "Goldie", price: 420, body: "#ffcf3f", roof: "#ffe07a", bumper: "#e0ad1f" },
+  { id: "white",  name: "Pearl",  price: 150, body: "#eef2f7", roof: "#ffffff", bumper: "#cfd6df" },
+  { id: "black",  name: "Onyx",   price: 220, body: "#3a3f49", roof: "#4a505c", bumper: "#2a2e36" },
+  { id: "purple", name: "Grape",  price: 300, body: "#9b6cff", roof: "#b288ff", bumper: "#7f53db" },
+  { id: "gold",   name: "Goldie", price: 450, body: "#ffcf3f", roof: "#ffe07a", bumper: "#e0ad1f" },
+  { id: "galaxy", name: "Galaxy", price: 900, body: "#6a3fb0", roof: "#8b5fd6", bumper: "#3f2470" },
 ];
 
 // DESIGN — car body shape (drawn procedurally by the renderer per id).

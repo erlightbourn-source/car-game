@@ -22,6 +22,7 @@ const Shop = (() => {
     bgOwned: ["day"], bg: "day",
     magnet: 0, shield: 0,
     lastBonus: "", streak: 0, maxStreak: 0,
+    missions: [], missionsDay: "", scores: [],
   };
   let data = { ...DEFAULTS };
   let mem = null;
@@ -40,8 +41,54 @@ const Shop = (() => {
   };
   const TABS = [
     ["paint", "🎨 Paint"], ["design", "🚗 Body"], ["light", "💡 Lights"],
-    ["bg", "🌅 World"], ["perks", "⚙️ Perks"],
+    ["bg", "🌅 World"], ["perks", "⚙️ Perks"], ["missions", "🎯 Goals"],
   ];
+
+  // ---- Daily missions + local leaderboard --------------------------------
+  const MISSION_POOL = [
+    { type: "dodge", reward: 60, targets: [40, 60, 80], label: (n) => `Dodge ${n} obstacles` },
+    { type: "coins", reward: 70, targets: [80, 120, 160], label: (n) => `Collect ${n} coins` },
+    { type: "combo", reward: 80, targets: [6, 8, 10], label: (n) => `Hit a ${n}× near-miss combo` },
+    { type: "score", reward: 90, targets: [25, 40, 55], label: (n) => `Reach score ${n} in one run` },
+  ];
+  function generateMissions() {
+    const pool = MISSION_POOL.slice();
+    const out = [];
+    for (let i = 0; i < 3 && pool.length; i++) {
+      const t = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+      const target = t.targets[Math.floor(Math.random() * t.targets.length)];
+      out.push({ type: t.type, target, reward: t.reward, progress: 0, done: false, text: t.label(target) });
+    }
+    return out;
+  }
+  function ensureMissions() {
+    const today = dayKey(new Date());
+    if (data.missionsDay !== today || !Array.isArray(data.missions) || data.missions.length === 0) {
+      data.missions = generateMissions();
+      data.missionsDay = today;
+      persist();
+    }
+  }
+  // Called at the end of a run; advances missions + leaderboard. Returns newly-completed.
+  function recordRun(stats) {
+    ensureMissions();
+    const completed = [];
+    for (const m of data.missions) {
+      if (m.done) continue;
+      if (m.type === "dodge") m.progress += stats.score;
+      else if (m.type === "coins") m.progress += stats.coins;
+      else if (m.type === "combo") m.progress = Math.max(m.progress, stats.bestCombo);
+      else if (m.type === "score") m.progress = Math.max(m.progress, stats.score);
+      if (m.progress >= m.target) { m.done = true; data.coins += m.reward; completed.push(m); }
+    }
+    if (stats.score > 0) {
+      data.scores.push(stats.score);
+      data.scores.sort((a, b) => b - a);
+      data.scores = data.scores.slice(0, 5);
+    }
+    persist(); onChange();
+    return { completed };
+  }
   const DESIGN_EMOJI = { hatch: "🚗", sport: "🏎️", pickup: "🛻", van: "🚐", classic: "🚙", roadster: "🚘" };
 
   function load() {
@@ -152,9 +199,25 @@ const Shop = (() => {
       host.appendChild(buildStreakNode());
       host.appendChild(upgradeRow("🧲 Coin Magnet", "magnet", CONFIG.MAGNET_PRICES, "Pulls coins in from nearby lanes"));
       host.appendChild(upgradeRow("🛡️ Shield", "shield", CONFIG.SHIELD_PRICES, "Absorbs a crash so you keep driving"));
+    } else if (tab === "missions") {
+      ensureMissions();
+      host.appendChild(buildStreakNode());
+      for (const m of data.missions) host.appendChild(buildMissionNode(m));
     } else {
       renderCatalog(host, tab);
     }
+  }
+
+  function buildMissionNode(m) {
+    const row = document.createElement("div");
+    row.className = "upg-row" + (m.done ? " done" : "");
+    const pct = Math.min(100, Math.round((m.progress / m.target) * 100));
+    row.innerHTML =
+      `<div class="upg-info"><div class="upg-name">${m.done ? "✅ " : "🎯 "}${m.text}</div>` +
+      `<div class="mbar"><div class="mbar-fill" style="width:${pct}%"></div></div>` +
+      `<div class="upg-desc">${Math.min(m.progress, m.target)} / ${m.target}</div></div>` +
+      `<div class="upg-action"><span class="${m.done ? "upg-max" : "mreward"}">${m.done ? "DONE" : "🪙 " + m.reward}</span></div>`;
+    return row;
   }
 
   function renderTabs() {
@@ -228,7 +291,8 @@ const Shop = (() => {
       onUnlock = (opts && opts.onUnlock) || (() => {});
       load();
     },
-    claimDailyBonus, streakInfo,
+    claimDailyBonus, streakInfo, recordRun,
+    get scores() { return data.scores || []; },
     // Flip the equipped car to the prev/next OWNED design (Garage arrows / keys).
     cycleDesign(dir) {
       const owned = DESIGNS.filter((d) => data.designOwned.indexOf(d.id) >= 0);

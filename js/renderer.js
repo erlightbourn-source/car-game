@@ -188,6 +188,7 @@ class Renderer {
   // Apply a background theme (sky / fog / sun / ambient / grass tint).
   setBackground(bg) {
     if (!bg) return;
+    this.worldId = bg.id;          // drives per-world roadside props
     this.skyMat.uniforms.top.value.set(bg.sky[0]);
     this.skyMat.uniforms.mid.value.set(bg.sky[1]);
     this.skyMat.uniforms.bot.value.set(bg.sky[2]);
@@ -298,10 +299,37 @@ class Renderer {
       g.add(hl);
     }
 
+    // --- Mascot face on the rear window (personality!) ---
+    const eyeW = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.55, roughness: 0.4 });
+    const pupMat = new THREE.MeshStandardMaterial({ color: 0x1a1d22, roughness: 0.5 });
+    const mouthMat = new THREE.MeshStandardMaterial({ color: 0xfff0e0, emissive: 0xffb070, emissiveIntensity: 0.4, roughness: 0.4 });
+    const eyeGeo = new THREE.SphereGeometry(0.15, 16, 12);
+    const pupGeo = new THREE.SphereGeometry(0.06, 12, 10);
+    for (const sx of [-1, 1]) {
+      const eye = new THREE.Mesh(eyeGeo, eyeW); eye.position.set(sx * 0.36, 1.1, 1.04); g.add(eye);
+      const pup = new THREE.Mesh(pupGeo, pupMat); pup.position.set(sx * 0.36, 1.1, 1.18); g.add(pup);
+    }
+    const smile = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.04, 8, 14, Math.PI), mouthMat);
+    smile.rotation.z = Math.PI; smile.position.set(0, 0.85, 1.08); g.add(smile);
+    const ooh = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.05, 8, 14), mouthMat);
+    ooh.position.set(0, 0.83, 1.08); ooh.visible = false; g.add(ooh);
+    this.carFace = { smile, ooh };
+
     g.position.set(0, 0, 0);
     this.car = g;
     this.scene.add(g);
   }
+
+  // Mascot expression: "smile" (default), "happy" (coins/near-miss), "ooh" (hit).
+  setExpression(name) {
+    if (!this.carFace) return;
+    const f = this.carFace;
+    if (name === "ooh") { f.smile.visible = false; f.ooh.visible = true; }
+    else { f.ooh.visible = false; f.smile.visible = true; f.smile.scale.setScalar(name === "happy" ? 1.35 : 1); }
+  }
+
+  // Camera kick / screen shake (steer = small, crash = big). reducedMotion disables it.
+  kick(amount) { if (!this.reducedMotion) this.shake = Math.min(1.4, (this.shake || 0) + amount); }
 
   // Extrude a side-profile shape (x = length) along width, bevel it, and rotate
   // so the car's length runs along world Z.
@@ -555,6 +583,48 @@ class Renderer {
     m.castShadow = true;
     return m;
   }
+  _makeProp(type) {
+    if (type === "cactus") return this._makeCactus();
+    if (type === "pine") return this._makePine();
+    if (type === "lolly") return this._makeLolly();
+    return this._makeTree();
+  }
+  _makeCactus() {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0x4e9a52, roughness: 0.85 });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 2.2, 10), mat);
+    body.position.y = 1.1; body.castShadow = true; g.add(body);
+    for (const sx of [-1, 1]) {
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.8, 8), mat);
+      arm.position.set(sx * 0.34, 1.3, 0); arm.castShadow = true; g.add(arm);
+      const up = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.7, 8), mat);
+      up.position.set(sx * 0.5, 1.6, 0); g.add(up);
+    }
+    return g;
+  }
+  _makePine() {
+    const g = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.8, 8),
+      new THREE.MeshStandardMaterial({ color: 0x7a5a3b, roughness: 0.9 }));
+    trunk.position.y = 0.4; g.add(trunk);
+    const snow = new THREE.MeshStandardMaterial({ color: 0xeaf3ff, roughness: 0.7 });
+    for (let i = 0; i < 3; i++) {
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.85 - i * 0.22, 0.9, 9), snow);
+      cone.position.y = 1.0 + i * 0.6; cone.castShadow = true; g.add(cone);
+    }
+    return g;
+  }
+  _makeLolly() {
+    const g = new THREE.Group();
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.8, 8),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 }));
+    stick.position.y = 0.9; g.add(stick);
+    const cols = [0xff6ec7, 0x6ec7ff, 0xfff06e];
+    const candy = new THREE.Mesh(new THREE.SphereGeometry(0.7, 14, 12),
+      new THREE.MeshStandardMaterial({ color: cols[(Math.random() * 3) | 0], roughness: 0.4, metalness: 0.1 }));
+    candy.position.y = 2.1; candy.castShadow = true; g.add(candy);
+    return g;
+  }
   _makeTree() {
     const g = new THREE.Group();
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.26, 1.4, 8),
@@ -784,11 +854,14 @@ class Renderer {
     const bob = engine.state === "playing" ? Math.sin(this.t * (24 + speed01 * 18)) * 0.02 * (0.4 + speed01) : 0;
     this.car.position.y = bob;
 
-    // Camera: trail the car a touch and add speed shake.
+    // Camera: trail the car, add speed wobble + decaying impulse shake (kick).
     const camX = this.car.position.x * 0.45;
-    const shake = engine.state === "playing" ? Math.sin(this.t * 30) * 0.015 * speed01 : 0;
-    this.camera.position.x += (camX - this.camera.position.x) * Math.min(1, dt * 4);
-    this.camera.position.y = 3.05 + shake;
+    const speedShake = engine.state === "playing" ? Math.sin(this.t * 30) * 0.015 * speed01 : 0;
+    this.shake = Math.max(0, (this.shake || 0) - dt * 6);
+    const kx = this.shake ? Math.sin(this.t * 90) * 0.13 * this.shake : 0;
+    const ky = this.shake ? Math.sin(this.t * 71 + 1) * 0.13 * this.shake : 0;
+    this.camera.position.x += (camX - this.camera.position.x) * Math.min(1, dt * 4) + kx;
+    this.camera.position.y = 3.05 + speedShake + ky;
     this.camLook.set(this.car.position.x * 0.5, 0.9, -24);
     this.camera.lookAt(this.camLook);
 
@@ -803,7 +876,7 @@ class Renderer {
       else if (o.type === "barrier") m = this._poolGet("barrier", () => this._makeBarrier());
       else if (o.type === "pothole") m = this._poolGet("pothole", () => this._makePothole());
       else m = this._poolGet("car", () => this._makeIssueCar());
-      m.position.set(this._wx(c.LANES[o.lane]), 0, wz);
+      m.position.set(this._wx(o.frac !== undefined ? o.frac : c.LANES[o.lane]), 0, wz);
     }
 
     for (const k of engine.coins) {
@@ -840,7 +913,11 @@ class Renderer {
         const m = this._poolGet("lamp", () => this._makeLamp());
         m.position.set(x, 0, wz); m.rotation.y = side < 0 ? 0 : Math.PI;
       } else {
-        const m = this._poolGet("tree", () => this._makeTree());
+        // Roadside prop varies by world for a real sense of place.
+        const prop = this.worldId === "desert" ? "cactus"
+          : this.worldId === "snow" ? "pine"
+          : this.worldId === "candy" ? "lolly" : "tree";
+        const m = this._poolGet(prop, () => this._makeProp(prop));
         const s = 0.8 + (idx % 4) * 0.18;
         m.position.set(x, 0, wz); m.scale.set(s, s, s);
         m.rotation.y = idx * 1.3;

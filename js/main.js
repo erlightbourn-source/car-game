@@ -39,6 +39,16 @@
   const elDoubler = $("hud-doubler"), elDoublerTime = $("hud-doubler-time");
   const elSlow = $("hud-slow"), elSlowTime = $("hud-slow-time");
   const elShieldBadge = $("hud-shield"), elShieldN = $("hud-shield-n");
+  const elCombo = $("hud-combo");
+
+  // --- Settings (persisted) ------------------------------------------------
+  let reducedMotion = false, paused = false;
+  try {
+    const s = JSON.parse(localStorage.getItem("lr_settings") || "{}");
+    reducedMotion = !!s.reducedMotion;
+  } catch (e) {}
+  function saveSettings() { try { localStorage.setItem("lr_settings", JSON.stringify({ reducedMotion })); } catch (e) {} }
+  renderer.reducedMotion = reducedMotion;
 
   // --- Persistence / economy ----------------------------------------------
   function refreshLabels() {
@@ -58,7 +68,7 @@
   Shop.init({
     onChange: refreshLabels,
     onSelect: applyCustomization,
-    onUnlock: (name) => { showToast("🔓 " + name + " unlocked!"); Sfx.unlock(); },
+    onUnlock: (name) => { showToast("🔓 " + name + " unlocked!"); Sfx.unlock_sfx(); },
   });
   engine.best = Shop.best;
   applyCustomization();
@@ -91,6 +101,10 @@
     $("over-best").textContent = engine.best;
     $("over-coins").textContent = engine.runCoins;
     $("new-best").classList.toggle("hidden", !sawNewBest);
+    const sc = Shop.scores;
+    $("over-scores").innerHTML = sc.length
+      ? "<div class='lb-title'>🏁 Top runs</div>" + sc.map((s, i) => `<div class="lb-row"><span>${i + 1}</span><span>${s}</span></div>`).join("")
+      : "";
     elOver.classList.remove("hidden");
   }
 
@@ -163,13 +177,41 @@
   $("garage-prev").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); Shop.cycleDesign(-1); });
   $("garage-next").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); Shop.cycleDesign(1); });
 
+  // --- Settings panel (pauses the game while open) ---
+  function openSettings() {
+    if (ui === "playing") paused = true;
+    $("set-sfx").value = Math.round(Sfx.getSfxVolume() * 100);
+    $("set-music").value = Math.round(Sfx.getMusicVolume() * 100);
+    $("set-reduced").checked = reducedMotion;
+    $("screen-settings").classList.remove("hidden");
+  }
+  function closeSettings() {
+    $("screen-settings").classList.add("hidden");
+    if (paused) { paused = false; last = performance.now(); }
+  }
+  $("settings-btn").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); openSettings(); });
+  $("set-close").addEventListener("click", (e) => { e.stopPropagation(); closeSettings(); });
+  $("set-sfx").addEventListener("input", (e) => Sfx.setSfxVolume(e.target.value / 100));
+  $("set-music").addEventListener("input", (e) => Sfx.setMusicVolume(e.target.value / 100));
+  $("set-reduced").addEventListener("change", (e) => { reducedMotion = e.target.checked; renderer.reducedMotion = reducedMotion; saveSettings(); });
+
+  // --- First-run tutorial coachmark ---
+  $("tut-ok").addEventListener("click", (e) => {
+    e.stopPropagation(); Sfx.unlock();
+    try { localStorage.setItem("lr_tut", "1"); } catch (_) {}
+    $("tutorial").classList.add("hidden");
+  });
+
   // --- Input: keyboard -----------------------------------------------------
   window.addEventListener("keydown", (e) => {
     switch (e.code) {
       case "ArrowLeft": case "KeyA":  e.preventDefault(); if (ui === "shop") Shop.cycleDesign(-1); else steer(-1); break;
       case "ArrowRight": case "KeyD": e.preventDefault(); if (ui === "shop") Shop.cycleDesign(1); else steer(1); break;
       case "Space": case "Enter":     e.preventDefault(); confirmAction(); break;
-      case "Escape":                  if (ui === "shop") showStart(); break;
+      case "Escape":
+        if (!$("screen-settings").classList.contains("hidden")) closeSettings();
+        else if (ui === "shop") showStart();
+        break;
       case "KeyM":                    toggleMute(); break;
     }
   });
@@ -204,13 +246,24 @@
       if (ev.type === "start") {
         Sfx.engineStart();
       } else if (ev.type === "steer") {
-        renderer.burst(0, 0, 7, "#d9d2c4", 90);   // dust kick only (no sound)
+        renderer.burst(0, 0, 7, "#d9d2c4", 90);   // dust kick (no sound)
+        renderer.kick(0.12);                       // small camera kick
+        haptic(8);
       } else if (ev.type === "score") {
         elHudScore.textContent = ev.value;
         if (ev.value % 5 === 0) Sfx.milestone();   // milestone only — no per-dodge tick
+      } else if (ev.type === "nearmiss") {
+        Sfx.nearmiss();
+        Shop.addCoins(ev.bonus);
+        elHudCoins.textContent = engine.runCoins;
+        expression("happy");
+        showComboPop(ev.combo, ev.bonus);
+        renderer.burst(0, 0, 8, "#9bff5a", 120);
+        haptic(12);
       } else if (ev.type === "coin") {
         Shop.addCoins(ev.gain || CONFIG.COIN_VALUE);
         Sfx.coin();
+        expression("happy");
         renderer.burst(0, 0, 6, engine.doubler > 0 ? "#86e1ff" : "#ffe07a", 90);
         flyCoinToHud();                             // 2D coin flies to the HUD
       } else if (ev.type === "powerup") {
@@ -223,16 +276,19 @@
         }
       } else if (ev.type === "shieldhit") {
         Sfx.shield();
-        const p = playerScreen();
-        renderer.burst(p.x, p.y - 24, 22, "#86e1ff", 180);
+        renderer.burst(0, 0, 22, "#86e1ff", 180);
+        renderer.kick(0.5); expression("ooh"); haptic(40);
       } else if (ev.type === "newbest") {
         sawNewBest = true;
         Shop.setBest(engine.best);
       } else if (ev.type === "crash") {
-        Sfx.crash(); Sfx.engineStop();
-        const p = playerScreen();
-        renderer.burst(p.x, p.y - 30, 26, "#ff9d57", 220);
+        Sfx.crash();
+        renderer.burst(0, 0, 26, "#ff9d57", 220);
+        renderer.kick(1.0); expression("ooh"); haptic([30, 40, 30]);
         deadAt = performance.now();
+        // Record run → missions + leaderboard; toast any newly-completed mission.
+        const res = Shop.recordRun({ score: engine.score, coins: engine.runCoins, bestCombo: engine.bestCombo, nearMisses: engine.nearMisses });
+        (res.completed || []).forEach((m, i) => setTimeout(() => { showToast("🎯 Goal done: +" + m.reward + "🪙"); Sfx.bonus(); }, 700 + i * 700));
         // Guard against a restart slipping in before this fires.
         setTimeout(() => { if (engine.state === "dead" && ui === "playing") showOver(); }, 550);
       }
@@ -288,6 +344,23 @@
     setTimeout(cleanup, 1600);
   }
 
+  // --- Mascot expression (auto-reverts to smile), haptics, combo popup -----
+  let exprTimer = null;
+  function expression(name) {
+    renderer.setExpression(name);
+    if (exprTimer) clearTimeout(exprTimer);
+    if (name !== "smile") exprTimer = setTimeout(() => renderer.setExpression("smile"), 700);
+  }
+  function haptic(p) { try { if (!reducedMotion && navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+  function showComboPop(combo, bonus) {
+    if (combo < 2) return;
+    const el = document.createElement("div");
+    el.className = "combo-pop";
+    el.textContent = "×" + combo + " near-miss  +" + bonus + "🪙";
+    document.getElementById("game-wrap").appendChild(el);
+    el.addEventListener("animationend", () => el.remove());
+  }
+
   // --- Game loop -----------------------------------------------------------
   // The whole body is wrapped so a single bad frame can NEVER kill the loop
   // (an unhandled throw used to skip the re-schedule and freeze the game).
@@ -299,8 +372,8 @@
       let dt = (now - last) / 1000; last = now;
       if (dt > 0.1) dt = 0.1;
 
-      // GPU context lost → pause (preserve the run) until it's restored.
-      if (renderer._contextLost) { requestAnimationFrame(frame); return; }
+      // GPU context lost, or game paused (settings open) → freeze, preserve run.
+      if (renderer._contextLost || paused) { requestAnimationFrame(frame); return; }
 
       const events = engine.update(dt);
       handleEvents(events);
@@ -316,6 +389,8 @@
         else elSlow.classList.add("hidden");
         if (engine.shields > 0) { elShieldN.textContent = engine.shields; elShieldBadge.classList.remove("hidden"); }
         else elShieldBadge.classList.add("hidden");
+        if (engine.combo >= 2) { elCombo.textContent = "🔥 ×" + engine.combo; elCombo.classList.remove("hidden"); }
+        else elCombo.classList.add("hidden");
       }
 
       // Adaptive quality: if the device sustains poor FPS, step quality down so
@@ -337,6 +412,8 @@
   renderer.resize();
   showStart();
   requestAnimationFrame(frame);
+  // First-run tutorial coachmark.
+  try { if (!localStorage.getItem("lr_tut")) $("tutorial").classList.remove("hidden"); } catch (e) {}
 
   // Debug/inspection hook (handy for tuning and an automated test harness).
   window.ZippyGame = { engine, renderer, cfg: CONFIG, Shop, beginGame, steer, showShop, showStart };

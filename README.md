@@ -117,6 +117,23 @@ It's tabbed:
 - **⚙️ Perks** — 🧲 Coin Magnet (3 levels, pulls in nearby coins) and 🛡️ Shield
   (3 levels, absorb a crash and keep driving).
 
+### Risk/reward, mascot & meta (critic-feedback update)
+- **Near-miss combo** — dodging an obstacle in the *adjacent* lane is a near-miss:
+  it builds a 🔥 combo and pays escalating bonus coins. Play it safe (dodge from
+  far) and the combo resets. Real skill expression + risk/reward.
+- **Weaving obstacles** — past score 12, obstacles start drifting between lanes as
+  they approach, so the difficulty adds *variety*, not just speed.
+- **Mascot** — the car has a face (googly eyes + smile) that reacts: grins on
+  coins/near-misses, goes wide-eyed on a hit.
+- **Music** — a gentle looping soundtrack (the old engine drone is gone); SFX and
+  Music have independent volume sliders in **⚙️ Settings** (plus reduced-motion + pause).
+- **Goals & leaderboard** — a Garage **🎯 Goals** tab with daily missions (coin
+  rewards) and a local top-5 high-score board on the game-over screen.
+- **Distinct worlds** — each world now has its own roadside props (cacti in the
+  desert, snowy pines in winter, lollipops in candy), not just a palette.
+- **Feel** — camera kick on lane changes, screen shake on crashes, mobile haptics.
+- **First-run tutorial** coachmark; rebalanced economy with a premium "Galaxy" car.
+
 ### Power-ups (collect on the road, mid-run)
 - **×2 Coins** (gold star) — doubles coins for 10s *and* auto-vacuums nearby coins.
 - **🐌 Slow-mo** (teal ring) — slows the world for 7s so you can thread tight gaps.

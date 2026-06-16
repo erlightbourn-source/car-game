@@ -430,4 +430,42 @@ h1 {
   100% { transform: scale(1); }
 }
 
+/* ---------- Settings button + combo HUD + combo popup ---------- */
+.settings-btn { right: 68px; font-size: 20px; }
+
+.hud-combo {
+  position: absolute; top: 104px; left: 50%; transform: translateX(-50%);
+  font-size: 20px; font-weight: bold; color: #ff7a2f;
+  text-shadow: 1px 2px 0 rgba(0,0,0,0.28);
+}
+.combo-pop {
+  position: absolute; top: 38%; left: 50%; z-index: 30;
+  font-size: 22px; font-weight: bold; color: #9bff5a;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.45); white-space: nowrap; pointer-events: none;
+  animation: combopop 0.9s ease-out forwards;
+}
+@keyframes combopop {
+  0%   { opacity: 0; transform: translate(-50%, -40%) scale(0.7); }
+  20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  100% { opacity: 0; transform: translate(-50%, -95%) scale(1); }
+}
+
+/* ---------- Settings panel ---------- */
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 14px 4px; }
+.setting-row label { font-weight: bold; font-size: 15px; color: var(--text); }
+.slider { flex: 1; max-width: 190px; accent-color: var(--accent); }
+.toggle-row input { width: 22px; height: 22px; accent-color: var(--accent); }
+
+/* ---------- Leaderboard on game over ---------- */
+.leaderboard { margin: 2px 0 8px; }
+.lb-title { font-size: 13px; font-weight: bold; opacity: 0.6; margin-bottom: 4px; }
+.lb-row { display: flex; justify-content: space-between; max-width: 170px; margin: 3px auto; font-weight: bold; color: #5a6b7a; background: #f4f7fa; border-radius: 8px; padding: 2px 14px; }
+.lb-row span:first-child { opacity: 0.5; }
+
+/* ---------- Mission rows (Goals tab) ---------- */
+.mbar { height: 6px; background: #dde4ea; border-radius: 4px; margin: 5px 0 3px; overflow: hidden; }
+.mbar-fill { height: 100%; background: #3ec98a; border-radius: 4px; }
+.mreward { font-size: 14px; font-weight: bold; color: #e0901f; }
+.upg-row.done { opacity: 0.75; }
+
 .hidden { display: none !important; }

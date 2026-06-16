@@ -9,16 +9,17 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Lane Rush 🚗</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=16" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=16" />
-  <link rel="stylesheet" href="style.css?v=16" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=18" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=18" />
+  <link rel="stylesheet" href="style.css?v=18" />
 </head>
 <body>
   <div id="game-wrap">
     <canvas id="game" aria-label="Lane Rush game"></canvas>
 
-    <!-- Mute toggle (always visible) -->
+    <!-- Mute + settings (always visible) -->
     <button id="mute-btn" class="mute-btn" aria-label="Toggle sound" title="Toggle sound">🔊</button>
+    <button id="settings-btn" class="mute-btn settings-btn" aria-label="Settings" title="Settings">⚙️</button>
 
     <!-- HUD (shown while playing) -->
     <div id="hud" class="hud hidden">
@@ -30,6 +31,7 @@
         <div id="hud-slow" class="badge slow hidden">🐌 <span id="hud-slow-time">0</span>s</div>
         <div id="hud-shield" class="badge shield hidden">🛡️ <span id="hud-shield-n">0</span></div>
       </div>
+      <div id="hud-combo" class="hud-combo hidden">🔥 ×2</div>
     </div>
 
     <!-- START SCREEN -->
@@ -71,9 +73,34 @@
         </div>
         <p class="coins-earned">🪙 +<span id="over-coins">0</span> coins this run</p>
         <div id="new-best" class="new-best hidden">🏆 New best!</div>
+        <div id="over-scores" class="leaderboard"></div>
         <button id="again-btn" class="btn">↻ Play again</button>
         <button id="over-garage-btn" class="btn btn-2">🔧 Garage</button>
         <p class="hint">Swipe or tap to play again</p>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="screen-settings" class="screen hidden">
+      <div class="panel">
+        <h1>⚙️ Settings</h1>
+        <div class="setting-row"><label for="set-music">🎵 Music</label>
+          <input id="set-music" class="slider" type="range" min="0" max="100" value="55" /></div>
+        <div class="setting-row"><label for="set-sfx">🔊 Sound FX</label>
+          <input id="set-sfx" class="slider" type="range" min="0" max="100" value="90" /></div>
+        <div class="setting-row toggle-row"><label for="set-reduced">🎞️ Reduced motion</label>
+          <input id="set-reduced" type="checkbox" /></div>
+        <button id="set-close" class="btn">Resume ▶</button>
+      </div>
+    </div>
+
+    <!-- FIRST-RUN TUTORIAL -->
+    <div id="tutorial" class="screen hidden">
+      <div class="panel">
+        <div class="big-emoji">👆</div>
+        <h1>How to play</h1>
+        <p class="tagline">Swipe ⬅️ ➡️ (or ← → / A D) to change lanes.<br>Dodge the road work, grab coins, build near-miss combos!</p>
+        <button id="tut-ok" class="btn">Let's drive! 🚗</button>
       </div>
     </div>
   </div>
@@ -90,11 +117,11 @@
   <script src="js/vendor/MaskPass.js"></script>
   <script src="js/vendor/UnrealBloomPass.js"></script>
   <!-- Load order: config -> audio -> engine (logic) -> renderer (3D) -> shop -> main -->
-  <script src="js/config.js?v=16"></script>
-  <script src="js/audio.js?v=16"></script>
-  <script src="js/engine.js?v=16"></script>
-  <script src="js/renderer.js?v=16"></script>
-  <script src="js/shop.js?v=16"></script>
-  <script src="js/main.js?v=16"></script>
+  <script src="js/config.js?v=18"></script>
+  <script src="js/audio.js?v=18"></script>
+  <script src="js/engine.js?v=18"></script>
+  <script src="js/renderer.js?v=18"></script>
+  <script src="js/shop.js?v=18"></script>
+  <script src="js/main.js?v=18"></script>
 </body>
 </html>
