@@ -49,7 +49,7 @@ const Shop = (() => {
     { type: "dodge", reward: 60, targets: [40, 60, 80], label: (n) => `Dodge ${n} obstacles` },
     { type: "coins", reward: 70, targets: [80, 120, 160], label: (n) => `Collect ${n} coins` },
     { type: "combo", reward: 80, targets: [6, 8, 10], label: (n) => `Hit a ${n}× near-miss combo` },
-    { type: "score", reward: 90, targets: [25, 40, 55], label: (n) => `Reach score ${n} in one run` },
+    { type: "score", reward: 90, targets: [80, 150, 250], label: (n) => `Reach score ${n} in one run` },
   ];
   function generateMissions() {
     const pool = MISSION_POOL.slice();
@@ -75,7 +75,7 @@ const Shop = (() => {
     const completed = [];
     for (const m of data.missions) {
       if (m.done) continue;
-      if (m.type === "dodge") m.progress += stats.score;
+      if (m.type === "dodge") m.progress += (stats.dodges != null ? stats.dodges : stats.score);
       else if (m.type === "coins") m.progress += stats.coins;
       else if (m.type === "combo") m.progress = Math.max(m.progress, stats.bestCombo);
       else if (m.type === "score") m.progress = Math.max(m.progress, stats.score);

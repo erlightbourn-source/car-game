@@ -22,7 +22,13 @@ class GameEngine {
     this.cfg = cfg;
     this.best = 0;
     this.upgrades = { magnet: 0, shield: 0 };
+    this.assist = false;           // Easy mode (set by the host before a run; persists across resets)
     this.reset();
+  }
+
+  // Effective difficulty progression. Easy mode clamps it to a gentle plateau.
+  _diff() {
+    return this.assist ? Math.min(this.passed, this.cfg.ASSIST_MAX_PASS) : this.passed;
   }
 
   reset() {
@@ -35,7 +41,9 @@ class GameEngine {
     };
     this.obstacles = [];           // {lane, z, type, resolved, frac, weaveTarget}
     this.coins = [];               // {lane, frac, z, collected}
-    this.score = 0;
+    this.score = 0;                // risk-weighted, player-facing score
+    this.passed = 0;               // obstacles dodged — drives difficulty (style-independent)
+    this._lastRowDouble = false;   // guard: never two blocker-rows back to back (fair breather)
     this.runCoins = 0;             // coins collected this run
     this.combo = 0;                // consecutive near-miss dodges (risk/reward)
     this.bestCombo = 0;            // best combo this run (for missions)
@@ -109,28 +117,40 @@ class GameEngine {
   _spawnObstacleRow() {
     const c = this.cfg;
     const n = c.LANES.length;
-    const types = ["cone", "pothole", "barrier", "car"];
-    const pick = () => types[Math.floor(Math.random() * types.length)];
+    const all = ["cone", "pothole", "barrier", "car"];
+    const hard = ["cone", "barrier", "car"];          // potholes are soft, so doubles use real blockers
+    const pick = () => all[(Math.random() * all.length) | 0];
+    const pickHard = () => hard[(Math.random() * hard.length) | 0];
+    const P = this._diff();                           // difficulty progression (clamped in Easy mode)
 
-    const canDouble = this.score >= c.DOUBLE_AT_SCORE;
-    const chance = Math.min(c.DOUBLE_MAX_CHANCE, this.score * 0.012);
+    // Never two blocker-rows in a row → guarantees a reachable breather (fair).
+    const canDouble = P >= c.DOUBLE_AT_SCORE && !this._lastRowDouble;
+    const dMax = P > c.HARD_AT_PASS ? c.DOUBLE_MAX_CHANCE_LATE : c.DOUBLE_MAX_CHANCE;
+    const dChance = Math.min(dMax, P * 0.012);
 
-    if (canDouble && n === 3 && Math.random() < chance) {
-      // Double row: always block the two OUTER lanes, leaving the CENTER free.
-      // Center is reachable from any lane in a single move, so it's always fair.
-      this.obstacles.push({ lane: 0, z: c.FAR_Z, type: pick(), resolved: false, frac: c.LANES[0] });
-      this.obstacles.push({ lane: 2, z: c.FAR_Z, type: pick(), resolved: false, frac: c.LANES[2] });
+    if (canDouble && n === 3 && Math.random() < dChance) {
+      this._lastRowDouble = true;
+      // Block the two OUTER lanes, leaving the CENTER open. The center is
+      // reachable from any lane in a single move, so a double row is ALWAYS
+      // survivable — this is what keeps the escalating game provably fair.
+      // (We deliberately do NOT leave an outer lane open: that can require a
+      // two-lane move and, combined with weaving, produces unwinnable rows.)
+      this.obstacles.push({ lane: 0, z: c.FAR_Z, type: pickHard(), resolved: false, frac: c.LANES[0] });
+      this.obstacles.push({ lane: 2, z: c.FAR_Z, type: pickHard(), resolved: false, frac: c.LANES[2] });
     } else {
-      const lane = Math.floor(Math.random() * n);
+      this._lastRowDouble = false;
+      const lane = (Math.random() * n) | 0;
       const o = { lane, z: c.FAR_Z, type: pick(), resolved: false, frac: c.LANES[lane] };
       // Escalation: single obstacles may WEAVE to an adjacent lane as they
       // approach, forcing the player to read their final position. (Singles
       // only — keeps the fairness guarantee that ≥1 lane is always clear.)
-      if (this.score >= c.WEAVE_AT_SCORE && Math.random() < Math.min(c.WEAVE_MAX_CHANCE, this.score * 0.015)) {
+      const wMax = P > c.HARD_AT_PASS ? c.WEAVE_MAX_CHANCE_LATE : c.WEAVE_MAX_CHANCE;
+      if (P >= c.WEAVE_AT_SCORE && Math.random() < Math.min(wMax, P * 0.015)) {
         const adj = [];
         if (lane - 1 >= 0) adj.push(lane - 1);
         if (lane + 1 < n) adj.push(lane + 1);
-        o.weaveTarget = c.LANES[adj[Math.floor(Math.random() * adj.length)]];
+        o.weaveTarget = c.LANES[adj[(Math.random() * adj.length) | 0]];
+        o.weaveSpeed = P > c.HARD_AT_PASS ? c.WEAVE_SPEED_LATE : c.WEAVE_SPEED;
       }
       this.obstacles.push(o);
     }
@@ -216,7 +236,8 @@ class GameEngine {
     if (this.bump > 0) this.bump = Math.max(0, this.bump - dt);         // brief pothole recovery
     if (this.magnetBoost > 0) this.magnetBoost = Math.max(0, this.magnetBoost - dt);
 
-    this.speed = Math.min(c.MAX_SPEED, c.START_SPEED + this.score * c.SPEED_PER_PASS);
+    const D = this._diff();
+    this.speed = Math.min(c.MAX_SPEED, c.START_SPEED + D * c.SPEED_PER_PASS);
     const moveSpeed = this.nmSlow > 0 ? this.speed * 0.45
       : (this.bump > 0 ? this.speed * c.POTHOLE_SLOW_FACTOR
       : (this.slow > 0 ? this.speed * c.SLOW_FACTOR : this.speed));
@@ -229,7 +250,7 @@ class GameEngine {
     for (const o of this.obstacles) {
       o.z -= ds;
       if (o.weaveTarget !== undefined && o.frac !== o.weaveTarget) {
-        o.frac += (o.weaveTarget - o.frac) * Math.min(1, dt * 0.55);
+        o.frac += (o.weaveTarget - o.frac) * Math.min(1, dt * (o.weaveSpeed || c.WEAVE_SPEED));
       }
     }
     for (const k of this.coins) k.z -= ds;
@@ -237,7 +258,10 @@ class GameEngine {
 
     // Spawn obstacle rows by distance (fair, speed-independent).
     this.sinceSpawn += ds;
-    const gap = Math.max(c.SPAWN_GAP_MIN, c.SPAWN_GAP_START - this.score * c.SPAWN_GAP_RAMP);
+    let gap = Math.max(c.SPAWN_GAP_MIN, c.SPAWN_GAP_START - D * c.SPAWN_GAP_RAMP);
+    if (D > c.HARD_AT_PASS) {                      // late game keeps compressing past the mid floor
+      gap = Math.max(c.SPAWN_GAP_MIN_LATE, gap - (D - c.HARD_AT_PASS) * c.SPAWN_GAP_RAMP_LATE);
+    }
     if (this.sinceSpawn >= gap) {
       this._spawnObstacleRow();
       this.sinceSpawn = 0;
@@ -318,9 +342,10 @@ class GameEngine {
       if (oLane === this.player.lane) {
         if (o.type === "pothole") {
           // Potholes are a SOFT hazard: a jolt that kills your combo and slows
-          // you for a moment, but never ends the run. Always survivable.
+          // you for a moment, but never ends the run. Always survivable. The
+          // jolt costs more the faster you're going, so it still stings late.
           this.combo = 0;
-          this.bump = c.POTHOLE_SLOW;
+          this.bump = c.POTHOLE_SLOW + (this.speed / c.MAX_SPEED) * c.POTHOLE_SLOW_FAST_BONUS;
           o.z = -20;
           this.events.push({ type: "bump" });
         } else if (this.invuln > 0) {
@@ -336,18 +361,21 @@ class GameEngine {
           return this.events;
         }
       } else {
-        this.score += 1;
+        this.passed += 1;                  // difficulty progression (style-independent)
         if (Math.abs(oLane - this.player.lane) === 1) {
           this.combo += 1;
           this.bestCombo = Math.max(this.bestCombo, this.combo);
           this.nearMisses += 1;
           let bonus = Math.min(this.combo, c.COMBO_CAP);
+          let gain = 1 + bonus;            // risk-weighted: bold near-misses score big
           const milestone = this.combo % 5 === 0;     // every 5th = dramatic moment
-          if (milestone) { bonus += 10; this.nmSlow = 0.45; }
+          if (milestone) { bonus += 10; gain += 10; this.nmSlow = 0.45; }
           this.runCoins += bonus;
+          this.score += gain;
           this.events.push({ type: "nearmiss", combo: this.combo, bonus, milestone });
         } else {
           this.combo = 0;                  // played it safe → streak resets
+          this.score += 1;                 // safe pass = small, steady reward
         }
         this.events.push({ type: "score", value: this.score });
       }

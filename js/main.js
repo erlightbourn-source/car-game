@@ -42,13 +42,15 @@
   const elCombo = $("hud-combo");
 
   // --- Settings (persisted) ------------------------------------------------
-  let reducedMotion = false, paused = false;
+  let reducedMotion = false, paused = false, easyMode = false;
   try {
     const s = JSON.parse(localStorage.getItem("lr_settings") || "{}");
     reducedMotion = !!s.reducedMotion;
+    easyMode = !!s.easyMode;
   } catch (e) {}
-  function saveSettings() { try { localStorage.setItem("lr_settings", JSON.stringify({ reducedMotion })); } catch (e) {} }
+  function saveSettings() { try { localStorage.setItem("lr_settings", JSON.stringify({ reducedMotion, easyMode })); } catch (e) {} }
   renderer.reducedMotion = reducedMotion;
+  engine.assist = easyMode;
 
   // --- Persistence / economy ----------------------------------------------
   function refreshLabels() {
@@ -183,6 +185,7 @@
     $("set-sfx").value = Math.round(Sfx.getSfxVolume() * 100);
     $("set-music").value = Math.round(Sfx.getMusicVolume() * 100);
     $("set-reduced").checked = reducedMotion;
+    $("set-easy").checked = easyMode;
     $("screen-settings").classList.remove("hidden");
   }
   function closeSettings() {
@@ -194,6 +197,7 @@
   $("set-sfx").addEventListener("input", (e) => Sfx.setSfxVolume(e.target.value / 100));
   $("set-music").addEventListener("input", (e) => Sfx.setMusicVolume(e.target.value / 100));
   $("set-reduced").addEventListener("change", (e) => { reducedMotion = e.target.checked; renderer.reducedMotion = reducedMotion; saveSettings(); });
+  $("set-easy").addEventListener("change", (e) => { easyMode = e.target.checked; engine.assist = easyMode; saveSettings(); });
 
   // --- First-run tutorial coachmark ---
   $("tut-ok").addEventListener("click", (e) => {
@@ -250,8 +254,7 @@
         renderer.kick(0.12);                       // small camera kick
         haptic(8);
       } else if (ev.type === "score") {
-        elHudScore.textContent = ev.value;
-        if (ev.value % 5 === 0) Sfx.milestone();   // milestone only — no per-dodge tick
+        elHudScore.textContent = ev.value;          // milestone drama is handled by the near-miss handler
       } else if (ev.type === "nearmiss") {
         Sfx.nearmiss();
         Shop.addCoins(ev.bonus);
@@ -295,7 +298,7 @@
         renderer.kick(1.0); expression("ooh"); haptic([30, 40, 30]);
         deadAt = performance.now();
         // Record run → missions + leaderboard; toast any newly-completed mission.
-        const res = Shop.recordRun({ score: engine.score, coins: engine.runCoins, bestCombo: engine.bestCombo, nearMisses: engine.nearMisses });
+        const res = Shop.recordRun({ score: engine.score, dodges: engine.passed, coins: engine.runCoins, bestCombo: engine.bestCombo, nearMisses: engine.nearMisses });
         (res.completed || []).forEach((m, i) => setTimeout(() => { showToast("🎯 Goal done: +" + m.reward + "🪙"); Sfx.bonus(); }, 700 + i * 700));
         // Guard against a restart slipping in before this fires.
         setTimeout(() => { if (engine.state === "dead" && ui === "playing") showOver(); }, 550);

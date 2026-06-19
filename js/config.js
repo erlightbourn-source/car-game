@@ -34,19 +34,31 @@ const CONFIG = {
   WEAVE_AT_SCORE: 12,    // score at which weaving obstacles start appearing
   WEAVE_MAX_CHANCE: 0.5, // max probability an obstacle weaves to an adjacent lane
 
-  // --- Speed / difficulty ramp ---
+  // --- Speed / difficulty ramp (driven by `passed` = obstacles dodged, so the
+  //     ramp is consistent regardless of how the player chooses to score) ---
   START_SPEED: 30,       // world units per second
-  MAX_SPEED: 84,
+  MAX_SPEED: 92,
   SPEED_PER_PASS: 0.7,   // speed gained per obstacle dodged
   KMH_PER_SPEED: 1.7,    // cosmetic speedometer conversion
 
   SPAWN_GAP_START: 32,   // world-distance between obstacle rows at the start
-  SPAWN_GAP_MIN: 18,     // tightest spacing at high difficulty
+  SPAWN_GAP_MIN: 18,     // tightest spacing in the early/mid game
   SPAWN_GAP_RAMP: 0.35,  // spacing reduction per obstacle dodged
   LEAD_IN: 20,           // empty road distance before the first obstacle
 
-  DOUBLE_AT_SCORE: 8,    // score at which two-obstacle rows can appear
+  DOUBLE_AT_SCORE: 8,    // passes at which two-obstacle rows can appear
   DOUBLE_MAX_CHANCE: 0.42, // max probability of a double row (always leaves CENTER lane free)
+
+  // --- Endless escalation: past the early plateau the game keeps getting
+  //     harder so skilled players eventually fail instead of running forever.
+  //     A breather (no two blocker-rows back to back) keeps it always fair. ---
+  HARD_AT_PASS: 60,         // passes after which late-game escalation kicks in
+  SPAWN_GAP_MIN_LATE: 11,   // tightest spacing in the late game
+  SPAWN_GAP_RAMP_LATE: 0.12,// extra spacing reduction per pass beyond HARD_AT_PASS
+  WEAVE_SPEED: 0.55,        // base weave drift rate (toward adjacent lane)
+  WEAVE_SPEED_LATE: 1.15,   // snappier weave late game (harder to read)
+  WEAVE_MAX_CHANCE_LATE: 0.78,
+  DOUBLE_MAX_CHANCE_LATE: 0.62,
 
   // --- Coins ---
   COIN_GAP: 14,          // world-distance between coin spawns
@@ -66,8 +78,13 @@ const CONFIG = {
   // --- Potholes are a SOFT hazard: they jolt + briefly slow you, they do NOT
   //     end the run (only cones / barriers / cars do). Hitting one costs your
   //     near-miss combo and a little speed, so they still sting. ---
-  POTHOLE_SLOW: 1.0,        // seconds of slowdown after clipping a pothole
+  POTHOLE_SLOW: 1.0,        // base seconds of slowdown after clipping a pothole
+  POTHOLE_SLOW_FAST_BONUS: 0.9, // extra slowdown seconds scaled by current speed (stings more when fast)
   POTHOLE_SLOW_FACTOR: 0.5, // world speed multiplier during pothole recovery
+
+  // --- Easy mode (younger kids): clamps difficulty to a gentle, near-endless
+  //     plateau — no late-game escalation, slower top speed. ---
+  ASSIST_MAX_PASS: 28,
 
   // --- Upgrades (max level 3 each) ---
   MAGNET_PRICES: [0, 80, 180, 320],
