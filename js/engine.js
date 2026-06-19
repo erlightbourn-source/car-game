@@ -51,6 +51,7 @@ class GameEngine {
     this.doubler = 0;              // seconds remaining of ×2 coin doubler
     this.slow = 0;                 // seconds remaining of slow-mo
     this.nmSlow = 0;               // brief near-miss-combo slow-mo
+    this.bump = 0;                 // brief slowdown after clipping a pothole (soft hazard)
     this.magnetBoost = 0;          // seconds remaining of boosted magnet (from ×2)
     this.curSpeed = c.START_SPEED; // effective world speed this frame (after slow-mo)
     this.scroll = 0;               // for the renderer's road animation
@@ -212,11 +213,13 @@ class GameEngine {
     }
     if (this.slow > 0) this.slow = Math.max(0, this.slow - dt);
     if (this.nmSlow > 0) this.nmSlow = Math.max(0, this.nmSlow - dt);   // brief near-miss slow-mo
+    if (this.bump > 0) this.bump = Math.max(0, this.bump - dt);         // brief pothole recovery
     if (this.magnetBoost > 0) this.magnetBoost = Math.max(0, this.magnetBoost - dt);
 
     this.speed = Math.min(c.MAX_SPEED, c.START_SPEED + this.score * c.SPEED_PER_PASS);
     const moveSpeed = this.nmSlow > 0 ? this.speed * 0.45
-      : (this.slow > 0 ? this.speed * c.SLOW_FACTOR : this.speed);
+      : (this.bump > 0 ? this.speed * c.POTHOLE_SLOW_FACTOR
+      : (this.slow > 0 ? this.speed * c.SLOW_FACTOR : this.speed));
     this.curSpeed = moveSpeed;
     const ds = moveSpeed * dt;     // slow-mo slows the world without affecting difficulty
     this.distance += ds;
@@ -313,7 +316,14 @@ class GameEngine {
       o.resolved = true;
       const oLane = this._laneOf(o.frac !== undefined ? o.frac : c.LANES[o.lane]);
       if (oLane === this.player.lane) {
-        if (this.invuln > 0) {
+        if (o.type === "pothole") {
+          // Potholes are a SOFT hazard: a jolt that kills your combo and slows
+          // you for a moment, but never ends the run. Always survivable.
+          this.combo = 0;
+          this.bump = c.POTHOLE_SLOW;
+          o.z = -20;
+          this.events.push({ type: "bump" });
+        } else if (this.invuln > 0) {
           o.z = -20;                       // already protected; shrug it off
         } else if (this.shields > 0) {
           this.shields -= 1;

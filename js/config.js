@@ -63,6 +63,12 @@ const CONFIG = {
   SLOW_TIME: 7,          // seconds slow-mo lasts
   SLOW_FACTOR: 0.55,     // world speed multiplier during slow-mo
 
+  // --- Potholes are a SOFT hazard: they jolt + briefly slow you, they do NOT
+  //     end the run (only cones / barriers / cars do). Hitting one costs your
+  //     near-miss combo and a little speed, so they still sting. ---
+  POTHOLE_SLOW: 1.0,        // seconds of slowdown after clipping a pothole
+  POTHOLE_SLOW_FACTOR: 0.5, // world speed multiplier during pothole recovery
+
   // --- Upgrades (max level 3 each) ---
   MAGNET_PRICES: [0, 80, 180, 320],
   SHIELD_PRICES: [0, 100, 220, 380],

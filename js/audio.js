@@ -138,6 +138,7 @@ const Sfx = (() => {
     milestone() { blip(660, 660, 0.09, "triangle", 0.11); setTimeout(() => blip(990, 990, 0.10, "triangle", 0.11), 70); },
     shield() { blip(180, 520, 0.18, "sine", 0.12); blip(360, 720, 0.18, "triangle", 0.06); },
     crash() { blip(220, 80, 0.30, "sawtooth", 0.13); blip(140, 60, 0.32, "square", 0.09); },
+    bump() { blip(160, 70, 0.16, "sine", 0.12); blip(90, 50, 0.18, "triangle", 0.08); },  // pothole thud (softer than a crash)
     bonus() {
       blip(523, 523, 0.10, "triangle", 0.11);
       setTimeout(() => blip(659, 659, 0.10, "triangle", 0.11), 90);

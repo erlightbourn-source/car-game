@@ -275,6 +275,13 @@
         } else {
           Sfx.powerup(); showToast("💰 ×2 Coins!"); renderer.burst(0, 0, 22, "#ffd23f", 200);
         }
+      } else if (ev.type === "bump") {
+        // Clipped a pothole: a jolt, not a crash. Run continues.
+        Sfx.bump();
+        renderer.burst(0, 0, 14, "#7a5a3a", 150);   // dirt/debris kick
+        renderer.kick(0.45); expression("ooh"); haptic([20, 30]);
+        showToast("🕳️ Pothole!");
+        elHudCoins.textContent = engine.runCoins;
       } else if (ev.type === "shieldhit") {
         Sfx.shield();
         renderer.burst(0, 0, 22, "#86e1ff", 180);

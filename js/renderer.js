@@ -498,6 +498,7 @@ class Renderer {
     band.position.y = 0.7; g.add(band);
     const base = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.12, 1.1), mat);
     base.position.y = 0.06; base.castShadow = true; g.add(base);
+    g.scale.setScalar(1.2);   // slightly bigger / more readable on the road
     return g;
   }
   _makeBarrier() {
