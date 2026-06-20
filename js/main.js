@@ -52,10 +52,26 @@
   renderer.reducedMotion = reducedMotion;
   engine.assist = easyMode;
 
+  // Single source of truth for difficulty — keeps the start-screen toggle, the
+  // Settings checkbox, the engine, and storage all in sync.
+  function setEasyMode(on) {
+    easyMode = !!on;
+    engine.assist = easyMode;
+    reflectEasyMode();
+    saveSettings();
+  }
+  function reflectEasyMode() {
+    const me = $("mode-easy"), mc = $("mode-classic"), chk = $("set-easy");
+    if (me) { me.classList.toggle("active", easyMode); me.setAttribute("aria-pressed", easyMode); }
+    if (mc) { mc.classList.toggle("active", !easyMode); mc.setAttribute("aria-pressed", !easyMode); }
+    if (chk) chk.checked = easyMode;
+  }
+
   // --- Persistence / economy ----------------------------------------------
   function refreshLabels() {
     $("start-best").textContent = Shop.best;
     $("start-coins").textContent = Shop.coins;
+    reflectEasyMode();
   }
   // Push every equipped customization (paint, body design, lights, world) to the
   // 3D scene. Order matters: set paint/light first so a design rebuild picks them up.
@@ -197,7 +213,9 @@
   $("set-sfx").addEventListener("input", (e) => Sfx.setSfxVolume(e.target.value / 100));
   $("set-music").addEventListener("input", (e) => Sfx.setMusicVolume(e.target.value / 100));
   $("set-reduced").addEventListener("change", (e) => { reducedMotion = e.target.checked; renderer.reducedMotion = reducedMotion; saveSettings(); });
-  $("set-easy").addEventListener("change", (e) => { easyMode = e.target.checked; engine.assist = easyMode; saveSettings(); });
+  $("set-easy").addEventListener("change", (e) => setEasyMode(e.target.checked));
+  $("mode-easy").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); setEasyMode(true); });
+  $("mode-classic").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); setEasyMode(false); });
 
   // --- First-run tutorial coachmark ---
   $("tut-ok").addEventListener("click", (e) => {
