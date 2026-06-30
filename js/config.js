@@ -158,3 +158,8 @@ const BACKGROUNDS = [
     hemiSky: 0xffd4ec, hemiGround: 0x5aa0a0, hemiInt: 0.6,
     sun: 0xfff0f6, sunInt: 2.4, sunDir: [-0.45, 0.6, -0.7], grass: 0x4fd0c0, glow: "#ffd0ec" },
 ];
+
+// Export for the headless playtest harness (Node). Browsers ignore this.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { CONFIG, CARS, DESIGNS, LIGHTS, BACKGROUNDS };
+}
