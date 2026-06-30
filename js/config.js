@@ -157,6 +157,10 @@ const BACKGROUNDS = [
     sky: [0xff7ec4, 0xffa8d8, 0xffe0f0], fog: 0xffc4e2, fogNear: 44, fogFar: 195,
     hemiSky: 0xffd4ec, hemiGround: 0x5aa0a0, hemiInt: 0.6,
     sun: 0xfff0f6, sunInt: 2.4, sunDir: [-0.45, 0.6, -0.7], grass: 0x4fd0c0, glow: "#ffd0ec" },
+  { id: "aurora", name: "Aurora", price: 480,
+    sky: [0x06112e, 0x123c57, 0x2bd49a], fog: 0x163a48, fogNear: 34, fogFar: 158,
+    hemiSky: 0x6fe0bd, hemiGround: 0x10202a, hemiInt: 0.45,
+    sun: 0xbfe6ff, sunInt: 0.95, sunDir: [0.4, 0.55, -0.6], grass: 0x254a3e, glow: "#7dffcf" },
 ];
 
 // Export for the headless playtest harness (Node). Browsers ignore this.
