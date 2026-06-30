@@ -104,10 +104,10 @@ function cohortDecide(b) {
   return 0;
 }
 function median(a) { const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; }
-function runCohort(b, runs) {
+function runCohort(b, runs, assist = false) {
   const times = [], scores = []; let survived = 0, potholes = 0;
   for (let r = 0; r < runs; r++) {
-    e.reset(); e.upgrades = { magnet: 0, shield: 0 }; e.shields = 0; e.assist = false; e.start();
+    e.reset(); e.upgrades = { magnet: 0, shield: 0 }; e.shields = 0; e.assist = assist; e.start();
     let t = 0, last = -1;
     while (e.state === "playing" && t < MAXT) {
       if (t - last >= b.inputDelay) { const mv = cohortDecide(b); if (mv) { e.steer(mv); last = t; } }
@@ -132,7 +132,7 @@ function runCohort(b, runs) {
 const oracleNormal = fairness(false, 20);
 const oracleEasy = fairness(true, 20);
 const cohorts = COHORTS.map((b) => runCohort(b, RUNS));
-const easyToddler = (() => { e.assist = true; const b = COHORTS[0]; const r = runCohort({ ...b }, RUNS); e.assist = false; return r; })();
+const easyToddler = runCohort(COHORTS[0], RUNS, true);   // toddler cohort IN easy mode (assist=true)
 
 // crude skill-spread signal: ratio of teen median score to young median score
 const young = cohorts.find((x) => x.cohort === "young_6_8");
