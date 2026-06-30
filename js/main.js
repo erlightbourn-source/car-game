@@ -118,6 +118,10 @@
     $("over-score").textContent = engine.score;
     $("over-best").textContent = engine.best;
     $("over-coins").textContent = engine.runCoins;
+    // Celebrate skill: show the best near-miss combo, but only if they built one (>=2).
+    const bc = engine.bestCombo | 0;
+    $("over-combo-val").textContent = bc;
+    $("over-combo").classList.toggle("hidden", bc < 2);
     $("new-best").classList.toggle("hidden", !sawNewBest);
     const sc = Shop.scores;
     $("over-scores").innerHTML = sc.length
