@@ -321,10 +321,8 @@
         elHudScore.textContent = ev.value;          // milestone drama is handled by the near-miss handler
       } else if (ev.type === "nearmiss") {
         Sfx.nearmiss();
-        Shop.addCoins(ev.bonus);
-        elHudCoins.textContent = engine.runCoins;
         expression("happy");
-        showComboPop(ev.combo, ev.bonus, ev.milestone);
+        showComboPop(ev.combo, ev.points, ev.milestone);   // near-misses reward score, not coins
         renderer.burst(0, 0, ev.milestone ? 18 : 8, "#9bff5a", ev.milestone ? 200 : 120);
         haptic(ev.milestone ? [15, 30, 15] : 12);
         if (ev.milestone) { Sfx.milestone(); flashScreen(); renderer.kick(0.25); }   // dramatic streak moment
@@ -429,11 +427,11 @@
     if (name !== "smile") exprTimer = setTimeout(() => renderer.setExpression("smile"), 700);
   }
   function haptic(p) { try { if (!reducedMotion && navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
-  function showComboPop(combo, bonus, milestone) {
+  function showComboPop(combo, points, milestone) {
     if (combo < 2) return;
     const el = document.createElement("div");
     el.className = "combo-pop" + (milestone ? " milestone" : "");
-    el.textContent = milestone ? "🔥 ×" + combo + " COMBO!  +" + bonus + "🪙" : "×" + combo + "  +" + bonus + "🪙";
+    el.textContent = milestone ? "🔥 ×" + combo + " COMBO!  +" + points : "×" + combo + "  +" + points;
     document.getElementById("game-wrap").appendChild(el);
     el.addEventListener("animationend", () => el.remove());
   }

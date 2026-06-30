@@ -380,13 +380,13 @@ class GameEngine {
           this.combo += 1;
           this.bestCombo = Math.max(this.bestCombo, this.combo);
           this.nearMisses += 1;
-          let bonus = Math.min(this.combo, c.COMBO_CAP);
-          let gain = 1 + bonus;            // risk-weighted: bold near-misses score big
           const milestone = this.combo % 5 === 0;     // every 5th = dramatic moment
-          if (milestone) { bonus += 10; gain += 10; this.nmSlow = 0.45; }
-          this.runCoins += bonus;
-          this.score += gain;
-          this.events.push({ type: "nearmiss", combo: this.combo, bonus, milestone });
+          // Near-misses reward SCORE (the skill flex), not coins. Coins come only
+          // from collecting coin pickups, so the economy stays a real progression.
+          let pts = 1 + Math.min(this.combo, c.COMBO_CAP);
+          if (milestone) { pts += 10; this.nmSlow = 0.45; }
+          this.score += pts;
+          this.events.push({ type: "nearmiss", combo: this.combo, points: pts, milestone });
         } else {
           this.combo = 0;                  // played it safe → streak resets
           this.score += 1;                 // safe pass = small, steady reward
