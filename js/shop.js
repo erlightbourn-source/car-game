@@ -22,6 +22,7 @@ const Shop = (() => {
     bgOwned: ["day"], bg: "day",
     magnet: 0, shield: 0,
     lastBonus: "", streak: 0, maxStreak: 0,
+    bestCombo: 0,
     missions: [], missionsDay: "", scores: [],
   };
   let data = { ...DEFAULTS };
@@ -86,8 +87,12 @@ const Shop = (() => {
       data.scores.sort((a, b) => b - a);
       data.scores = data.scores.slice(0, 5);
     }
+    // Lifetime-best near-miss combo — a durable, skill-based personal record.
+    const runCombo = stats.bestCombo | 0;
+    const comboRecord = runCombo >= 2 && runCombo > (data.bestCombo | 0);
+    if (comboRecord) data.bestCombo = runCombo;
     persist(); onChange();
-    return { completed };
+    return { completed, comboRecord };
   }
   const DESIGN_EMOJI = { hatch: "🚗", sport: "🏎️", pickup: "🛻", van: "🚐", classic: "🚙", roadster: "🚘" };
 
@@ -307,6 +312,7 @@ const Shop = (() => {
     flush() { if (saveTimer) persist(); },   // force-write any pending coins (page hide)
     get coins() { return data.coins; },
     get best() { return data.best; },
+    get bestCombo() { return data.bestCombo | 0; },
     get upgrades() { return { magnet: data.magnet | 0, shield: data.shield | 0 }; },
     equippedColors, equippedDesign, equippedLight, equippedBackground,
     addCoins(n) { data.coins += n; persistSoon(); onChange(); },

@@ -71,6 +71,7 @@
   function refreshLabels() {
     $("start-best").textContent = Shop.best;
     $("start-coins").textContent = Shop.coins;
+    $("start-combo").textContent = Shop.bestCombo;
     reflectEasyMode();
   }
   // Push every equipped customization (paint, body design, lights, world) to the
@@ -99,6 +100,7 @@
   // --- Screen state machine ------------------------------------------------
   let ui = "start";          // "start" | "shop" | "playing" | "over"
   let sawNewBest = false;
+  let sawComboRecord = false;
   let deadAt = 0;
 
   function hideAll() {
@@ -122,6 +124,7 @@
     const bc = engine.bestCombo | 0;
     $("over-combo-val").textContent = bc;
     $("over-combo").classList.toggle("hidden", bc < 2);
+    $("over-combo-rec").classList.toggle("hidden", !sawComboRecord);
     $("new-best").classList.toggle("hidden", !sawNewBest);
     const sc = Shop.scores;
     $("over-scores").innerHTML = sc.length
@@ -133,6 +136,7 @@
   // --- Actions -------------------------------------------------------------
   function beginGame() {
     sawNewBest = false;
+    sawComboRecord = false;
     engine.upgrades = Shop.upgrades;       // apply purchased perks for this run
     engine.best = Shop.best;
     engine.reset();
@@ -321,6 +325,7 @@
         deadAt = performance.now();
         // Record run → missions + leaderboard; toast any newly-completed mission.
         const res = Shop.recordRun({ score: engine.score, dodges: engine.passed, coins: engine.runCoins, bestCombo: engine.bestCombo, nearMisses: engine.nearMisses });
+        sawComboRecord = !!res.comboRecord;
         (res.completed || []).forEach((m, i) => setTimeout(() => { showToast("🎯 Goal done: +" + m.reward + "🪙"); Sfx.bonus(); }, 700 + i * 700));
         // Guard against a restart slipping in before this fires.
         setTimeout(() => { if (engine.state === "dead" && ui === "playing") showOver(); }, 550);

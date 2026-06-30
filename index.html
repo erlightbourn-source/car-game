@@ -9,9 +9,9 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Lane Rush 🚗</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=26" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=26" />
-  <link rel="stylesheet" href="style.css?v=26" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=27" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=27" />
+  <link rel="stylesheet" href="style.css?v=27" />
 </head>
 <body>
   <div id="game-wrap">
@@ -42,6 +42,7 @@
         <div class="stat-row">
           <div class="stat"><span class="stat-label">BEST</span><span class="stat-val" id="start-best">0</span></div>
           <div class="stat"><span class="stat-label">COINS</span><span class="stat-val">🪙 <span id="start-coins">0</span></span></div>
+          <div class="stat"><span class="stat-label">COMBO</span><span class="stat-val">🔥 <span id="start-combo">0</span>×</span></div>
         </div>
         <div class="mode-row" role="group" aria-label="Difficulty">
           <button id="mode-easy" class="mode-btn" aria-pressed="false">👶 Easy</button>
@@ -76,7 +77,7 @@
           <div><span class="score-label">Best</span><span id="over-best" class="score-val">0</span></div>
         </div>
         <p class="coins-earned">🪙 +<span id="over-coins">0</span> coins this run</p>
-        <p id="over-combo" class="combo-earned hidden">🔥 Best combo: <b><span id="over-combo-val">0</span>×</b> near-misses</p>
+        <p id="over-combo" class="combo-earned hidden">🔥 Best combo: <b><span id="over-combo-val">0</span>×</b> near-misses<span id="over-combo-rec" class="combo-rec hidden"> — 🏆 record!</span></p>
         <div id="new-best" class="new-best hidden">🏆 New best!</div>
         <div id="over-scores" class="leaderboard"></div>
         <button id="again-btn" class="btn">↻ Play again</button>
@@ -124,11 +125,11 @@
   <script src="js/vendor/MaskPass.js"></script>
   <script src="js/vendor/UnrealBloomPass.js"></script>
   <!-- Load order: config -> audio -> engine (logic) -> renderer (3D) -> shop -> main -->
-  <script src="js/config.js?v=26"></script>
-  <script src="js/audio.js?v=26"></script>
-  <script src="js/engine.js?v=26"></script>
-  <script src="js/renderer.js?v=26"></script>
-  <script src="js/shop.js?v=26"></script>
-  <script src="js/main.js?v=26"></script>
+  <script src="js/config.js?v=27"></script>
+  <script src="js/audio.js?v=27"></script>
+  <script src="js/engine.js?v=27"></script>
+  <script src="js/renderer.js?v=27"></script>
+  <script src="js/shop.js?v=27"></script>
+  <script src="js/main.js?v=27"></script>
 </body>
 </html>
