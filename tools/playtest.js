@@ -23,7 +23,7 @@
  */
 "use strict";
 const path = require("path");
-const { CONFIG } = require(path.join(__dirname, "..", "js", "config.js"));
+const { CONFIG, CARS, DESIGNS, LIGHTS, BACKGROUNDS } = require(path.join(__dirname, "..", "js", "config.js"));
 const { GameEngine } = require(path.join(__dirname, "..", "js", "engine.js"));
 
 const args = process.argv.slice(2);
@@ -105,7 +105,7 @@ function cohortDecide(b) {
 }
 function median(a) { const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; }
 function runCohort(b, runs, assist = false) {
-  const times = [], scores = []; let survived = 0, potholes = 0;
+  const times = [], scores = [], coins = []; let survived = 0, potholes = 0;
   for (let r = 0; r < runs; r++) {
     e.reset(); e.upgrades = { magnet: 0, shield: 0 }; e.shields = 0; e.assist = assist; e.start();
     let t = 0, last = -1;
@@ -115,7 +115,8 @@ function runCohort(b, runs, assist = false) {
       for (const x of ev) if (x.type === "bump") potholes++;
       t += DT;
     }
-    times.push(+t.toFixed(1)); scores.push(e.score); if (e.state !== "dead") survived++;
+    times.push(+t.toFixed(1)); scores.push(e.score); coins.push(e.runCoins | 0);
+    if (e.state !== "dead") survived++;
   }
   return {
     cohort: b.key,
@@ -124,6 +125,7 @@ function runCohort(b, runs, assist = false) {
     reached5minPct: Math.round(survived / runs * 100),
     medianScore: median(scores),
     maxScore: Math.max(...scores),
+    medianCoins: median(coins),
     potholeHitsPerRun: +(potholes / runs).toFixed(1),
   };
 }
@@ -139,11 +141,21 @@ const young = cohorts.find((x) => x.cohort === "young_6_8");
 const teen = cohorts.find((x) => x.cohort === "teen_13plus");
 const skillSpread = young && teen && young.medianScore ? +(teen.medianScore / young.medianScore).toFixed(1) : null;
 
+// Economy pacing: how many runs a typical player (young_6_8) needs to afford the
+// priciest item in each category. Healthy band roughly 3–25 runs (aspirational
+// but reachable). Way under = trivial; way over = grindy.
+const earnRate = (young && young.medianCoins) || 1;
+const economy = [["paint", CARS], ["design", DESIGNS], ["light", LIGHTS], ["bg", BACKGROUNDS]].map(([k, list]) => {
+  const top = list.reduce((a, b) => (b.price > a.price ? b : a));
+  return { category: k, priciest: top.name || top.id, price: top.price, runsToAfford: +(top.price / earnRate).toFixed(1) };
+});
+
 const report = {
   runsPerCohort: RUNS,
   fairness: { oracleNormalPct: Math.round(oracleNormal * 100), oracleEasyPct: Math.round(oracleEasy * 100), gateMinPct: FAIRNESS_MIN * 100 },
   cohorts,
   easyModeToddler: { medianSurvivalSec: easyToddler.medianSurvivalSec, reached5minPct: easyToddler.reached5minPct, medianScore: easyToddler.medianScore },
+  economy: { earnRatePerRun_young: earnRate, items: economy },
   signals: {
     skillSpread_teenVsYoung: skillSpread,   // >1.5 = score meaningfully rewards skill
     averagePlayerCanLose: (young ? young.reached5minPct < 50 : null), // young players should mostly lose
@@ -174,6 +186,11 @@ if (JSON_ONLY) {
   console.log(`Easy-mode toddler: median ${report.easyModeToddler.medianSurvivalSec}s, reaches 5min ${report.easyModeToddler.reached5minPct}%`);
   console.log(`Skill spread (teen/young median score): ${skillSpread}x  (>1.5 = score rewards skill)`);
   console.log(`Average player can lose (young reaches 5min < 50%): ${report.signals.averagePlayerCanLose}`);
+  console.log("");
+  console.log(`Economy — a typical (young) player earns ~${earnRate} coins/run. Runs to afford the priciest item:`);
+  for (const it of economy) {
+    console.log("  " + it.category.padEnd(8), (it.priciest + " (" + it.price + "🪙)").padEnd(22), "≈ " + it.runsToAfford + " runs");
+  }
   console.log("");
   console.log(JSON.stringify(report));
 }
