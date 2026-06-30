@@ -114,6 +114,8 @@
     ui = "playing"; hideAll(); elHud.classList.remove("hidden");
     elHudScore.textContent = "0"; elHudCoins.textContent = "0"; elHudSpeed.textContent = "0";
     elDoubler.classList.add("hidden"); elSlow.classList.add("hidden"); elShieldBadge.classList.add("hidden");
+    // First-run coaching: show a swipe hint until the player makes their first lane change ever.
+    $("swipe-hint").classList.toggle("hidden", steeredEver);
   }
   function showOver() {
     ui = "over"; hideAll();
@@ -125,6 +127,11 @@
     $("over-combo-val").textContent = bc;
     $("over-combo").classList.toggle("hidden", bc < 2);
     $("over-combo-rec").classList.toggle("hidden", !sawComboRecord);
+    // Daily Challenge result line.
+    if (dailyMode && lastDaily) {
+      $("over-daily").textContent = "🗓️ Daily best: " + lastDaily.best + (lastDaily.isBest ? " — 🏆 new!" : "");
+      $("over-daily").classList.remove("hidden");
+    } else { $("over-daily").classList.add("hidden"); }
     $("new-best").classList.toggle("hidden", !sawNewBest);
     const sc = Shop.scores;
     $("over-scores").innerHTML = sc.length
@@ -134,11 +141,22 @@
   }
 
   // --- Actions -------------------------------------------------------------
-  function beginGame() {
+  let dailyMode = false;          // current run is the seeded Daily Challenge
+  let lastDaily = null;           // {best, isBest} from the last daily run, for the over screen
+  let steeredEver = false;        // has the player ever changed lanes? (drives the first-run hint)
+  try { steeredEver = !!localStorage.getItem("lr_steered"); } catch (e) {}
+
+  function todayKey() { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+  function todaySeed() { const d = new Date(); return (d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()) >>> 0; }
+
+  function beginGame(daily) {
+    dailyMode = !!daily;
     sawNewBest = false;
     sawComboRecord = false;
     engine.upgrades = Shop.upgrades;       // apply purchased perks for this run
     engine.best = Shop.best;
+    engine.assist = dailyMode ? false : easyMode;   // Daily is always Classic so scores compare fairly
+    engine.seed = dailyMode ? todaySeed() : null;   // deterministic course for the day, else random
     engine.reset();
     engine.start();
     applyCustomization();
@@ -149,15 +167,28 @@
   function steer(dir) {
     if (ui === "shop") return;
     Sfx.unlock();
-    if (engine.state === "ready") beginGame();
-    else if (engine.state === "playing") engine.steer(dir);
-    else if (engine.state === "dead" && performance.now() - deadAt > 350) beginGame();
+    if (engine.state === "ready") beginGame(dailyMode);
+    else if (engine.state === "playing") {
+      const before = engine.player.lane;
+      engine.steer(dir);
+      if (engine.player.lane !== before) {            // a real lane change happened
+        renderer.burst(0, 0, 7, "#d9d2c4", 90);       // dust kick
+        renderer.kick(0.12); haptic(8);               // (engine's "steer" event is cleared by the
+                                                      //  next update, so feedback lives here instead)
+        if (!steeredEver) {                           // retire the first-run coachmark
+          steeredEver = true;
+          try { localStorage.setItem("lr_steered", "1"); } catch (_) {}
+          $("swipe-hint").classList.add("hidden");
+        }
+      }
+    }
+    else if (engine.state === "dead" && performance.now() - deadAt > 350) beginGame(dailyMode);
   }
   function confirmAction() {
     if (ui === "shop") return;
     Sfx.unlock();
-    if (engine.state === "ready") beginGame();
-    else if (engine.state === "dead" && performance.now() - deadAt > 350) beginGame();
+    if (engine.state === "ready") beginGame(dailyMode);
+    else if (engine.state === "dead" && performance.now() - deadAt > 350) beginGame(dailyMode);
   }
 
   // --- Input: swipe + tap (+ drag-to-rotate in showcase) -------------------
@@ -195,10 +226,21 @@
   elStart.addEventListener("pointerdown", (e) => { if (e.target === elStart) confirmAction(); });
   elOver.addEventListener("pointerdown", (e) => { if (e.target === elOver) confirmAction(); });
 
-  $("play-btn").addEventListener("click", (e) => { e.stopPropagation(); beginGame(); });
-  $("again-btn").addEventListener("click", (e) => { e.stopPropagation(); if (engine.state === "dead") beginGame(); });
+  $("play-btn").addEventListener("click", (e) => { e.stopPropagation(); beginGame(false); });
+  $("daily-btn").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); beginGame(true); });
+  $("again-btn").addEventListener("click", (e) => { e.stopPropagation(); if (engine.state === "dead") beginGame(dailyMode); });
   $("garage-btn").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); showShop(); });
   $("over-garage-btn").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); showShop(); });
+  $("share-btn").addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const url = "https://erlightbourn-source.github.io/car-game/";
+    const text = (dailyMode ? "I scored " + engine.score + " in today's Lane Rush Daily Challenge! 🗓️🚗"
+                            : "I scored " + engine.score + " in Lane Rush! 🚗💨") + " Can you beat me?";
+    try {
+      if (navigator.share) { await navigator.share({ title: "Lane Rush", text, url }); }
+      else { await navigator.clipboard.writeText(text + " " + url); showToast("🔗 Link copied!"); }
+    } catch (err) { /* user dismissed the share sheet — ignore */ }
+  });
   $("shop-back").addEventListener("click", (e) => { e.stopPropagation(); showStart(); });
   $("garage-prev").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); Shop.cycleDesign(-1); });
   $("garage-next").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); Shop.cycleDesign(1); });
@@ -275,10 +317,6 @@
     for (const ev of events) {
       if (ev.type === "start") {
         Sfx.engineStart();
-      } else if (ev.type === "steer") {
-        renderer.burst(0, 0, 7, "#d9d2c4", 90);   // dust kick (no sound)
-        renderer.kick(0.12);                       // small camera kick
-        haptic(8);
       } else if (ev.type === "score") {
         elHudScore.textContent = ev.value;          // milestone drama is handled by the near-miss handler
       } else if (ev.type === "nearmiss") {
@@ -326,6 +364,7 @@
         // Record run → missions + leaderboard; toast any newly-completed mission.
         const res = Shop.recordRun({ score: engine.score, dodges: engine.passed, coins: engine.runCoins, bestCombo: engine.bestCombo, nearMisses: engine.nearMisses });
         sawComboRecord = !!res.comboRecord;
+        lastDaily = dailyMode ? Shop.recordDaily(engine.score, todayKey()) : null;
         (res.completed || []).forEach((m, i) => setTimeout(() => { showToast("🎯 Goal done: +" + m.reward + "🪙"); Sfx.bonus(); }, 700 + i * 700));
         // Guard against a restart slipping in before this fires.
         setTimeout(() => { if (engine.state === "dead" && ui === "playing") showOver(); }, 550);
@@ -460,6 +499,12 @@
   requestAnimationFrame(frame);
   // First-run tutorial coachmark.
   try { if (!localStorage.getItem("lr_tut")) $("tutorial").classList.remove("hidden"); } catch (e) {}
+
+  // Register the service worker so the game is installable + works offline (PWA).
+  // Same-origin only (CSP-safe); failures are non-fatal — the game still runs.
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
 
   // Debug/inspection hook (handy for tuning and an automated test harness).
   window.ZippyGame = { engine, renderer, cfg: CONFIG, Shop, beginGame, steer, showShop, showStart };

@@ -23,6 +23,7 @@ const Shop = (() => {
     magnet: 0, shield: 0,
     lastBonus: "", streak: 0, maxStreak: 0,
     bestCombo: 0,
+    dailyBest: 0, dailyBestDay: "",
     missions: [], missionsDay: "", scores: [],
   };
   let data = { ...DEFAULTS };
@@ -297,6 +298,16 @@ const Shop = (() => {
       load();
     },
     claimDailyBonus, streakInfo, recordRun,
+    // Daily Challenge best score, scoped to a day key (resets each new day).
+    dailyBest(dayK) { return (data.dailyBestDay === dayK) ? (data.dailyBest | 0) : 0; },
+    recordDaily(score, dayK) {
+      const prev = (data.dailyBestDay === dayK) ? (data.dailyBest | 0) : 0;
+      const isBest = score > prev;
+      if (data.dailyBestDay !== dayK) data.dailyBestDay = dayK;
+      if (isBest) data.dailyBest = score;
+      persist(); onChange();
+      return { best: Math.max(prev, score), isBest };
+    },
     get scores() { return data.scores || []; },
     // Flip the equipped car to the prev/next OWNED design (Garage arrows / keys).
     cycleDesign(dir) {

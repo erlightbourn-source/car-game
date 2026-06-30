@@ -17,12 +17,24 @@
  * Upgrades are injected by the host before a run via `engine.upgrades`
  * ({ magnet, shield } levels); the engine stays unaware of pricing/UI.
  */
+// Small deterministic PRNG (mulberry32) for the seeded Daily Challenge. When no
+// seed is set the engine uses Math.random, so normal play is unchanged.
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 class GameEngine {
   constructor(cfg) {
     this.cfg = cfg;
     this.best = 0;
     this.upgrades = { magnet: 0, shield: 0 };
     this.assist = false;           // Easy mode (set by the host before a run; persists across resets)
+    this.seed = null;              // set to an integer for a deterministic (Daily) course; null = random
     this.reset();
   }
 
@@ -33,6 +45,8 @@ class GameEngine {
 
   reset() {
     const c = this.cfg;
+    // Seeded RNG for deterministic (Daily) runs; falls back to Math.random.
+    this._rand = (this.seed != null) ? mulberry32(this.seed >>> 0) : Math.random;
     const mid = Math.floor(c.LANES.length / 2);
     this.state = "ready";          // "ready" | "playing" | "dead"
     this.player = {
@@ -119,8 +133,8 @@ class GameEngine {
     const n = c.LANES.length;
     const all = ["cone", "pothole", "barrier", "car"];
     const hard = ["cone", "barrier", "car"];          // potholes are soft, so doubles use real blockers
-    const pick = () => all[(Math.random() * all.length) | 0];
-    const pickHard = () => hard[(Math.random() * hard.length) | 0];
+    const pick = () => all[(this._rand() * all.length) | 0];
+    const pickHard = () => hard[(this._rand() * hard.length) | 0];
     const P = this._diff();                           // difficulty progression (clamped in Easy mode)
 
     // Never two blocker-rows in a row → guarantees a reachable breather (fair).
@@ -128,7 +142,7 @@ class GameEngine {
     const dMax = P > c.HARD_AT_PASS ? c.DOUBLE_MAX_CHANCE_LATE : c.DOUBLE_MAX_CHANCE;
     const dChance = Math.min(dMax, P * 0.012);
 
-    if (canDouble && n === 3 && Math.random() < dChance) {
+    if (canDouble && n === 3 && this._rand() < dChance) {
       this._lastRowDouble = true;
       // Block the two OUTER lanes, leaving the CENTER open. The center is
       // reachable from any lane in a single move, so a double row is ALWAYS
@@ -139,17 +153,17 @@ class GameEngine {
       this.obstacles.push({ lane: 2, z: c.FAR_Z, type: pickHard(), resolved: false, frac: c.LANES[2] });
     } else {
       this._lastRowDouble = false;
-      const lane = (Math.random() * n) | 0;
+      const lane = (this._rand() * n) | 0;
       const o = { lane, z: c.FAR_Z, type: pick(), resolved: false, frac: c.LANES[lane] };
       // Escalation: single obstacles may WEAVE to an adjacent lane as they
       // approach, forcing the player to read their final position. (Singles
       // only — keeps the fairness guarantee that ≥1 lane is always clear.)
       const wMax = P > c.HARD_AT_PASS ? c.WEAVE_MAX_CHANCE_LATE : c.WEAVE_MAX_CHANCE;
-      if (P >= c.WEAVE_AT_SCORE && Math.random() < Math.min(wMax, P * 0.015)) {
+      if (P >= c.WEAVE_AT_SCORE && this._rand() < Math.min(wMax, P * 0.015)) {
         const adj = [];
         if (lane - 1 >= 0) adj.push(lane - 1);
         if (lane + 1 < n) adj.push(lane + 1);
-        o.weaveTarget = c.LANES[adj[(Math.random() * adj.length) | 0]];
+        o.weaveTarget = c.LANES[adj[(this._rand() * adj.length) | 0]];
         o.weaveSpeed = P > c.HARD_AT_PASS ? c.WEAVE_SPEED_LATE : c.WEAVE_SPEED;
       }
       this.obstacles.push(o);
@@ -164,13 +178,13 @@ class GameEngine {
     let lane;
     // Prefer continuing the previous coin's lane to form satisfying trails.
     if (this._lastCoinLane >= 0 && !occupied.has(this._lastCoinLane) &&
-        Math.random() < c.COIN_TRAIL_KEEP) {
+        this._rand() < c.COIN_TRAIL_KEEP) {
       lane = this._lastCoinLane;
     } else {
       const free = [];
       for (let i = 0; i < n; i++) if (!occupied.has(i)) free.push(i);
       if (free.length === 0) return; // no safe lane this cycle
-      lane = free[Math.floor(Math.random() * free.length)];
+      lane = free[Math.floor(this._rand() * free.length)];
     }
 
     this.coins.push({ lane, frac: c.LANES[lane], z: c.FAR_Z, collected: false });
@@ -181,10 +195,10 @@ class GameEngine {
     const c = this.cfg, n = c.LANES.length, occupied = this._lanesOccupiedNearFar();
     const free = [];
     for (let i = 0; i < n; i++) if (!occupied.has(i)) free.push(i);
-    const lane = free.length ? free[Math.floor(Math.random() * free.length)]
-      : Math.floor(Math.random() * n);
+    const lane = free.length ? free[Math.floor(this._rand() * free.length)]
+      : Math.floor(this._rand() * n);
     // Weighted-random type: ×2 most common, then slow-mo, then shield.
-    const r = Math.random();
+    const r = this._rand();
     const type = r < 0.5 ? "x2" : r < 0.8 ? "slow" : "shield";
     this.powerups.push({ lane, frac: c.LANES[lane], z: c.FAR_Z, collected: false, type });
   }

@@ -1,0 +1,16 @@
+{
+  "name": "Lane Rush",
+  "short_name": "Lane Rush",
+  "description": "A kid-friendly first-person 3-lane endless driving game. Swipe, dodge, collect!",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#5bb8f0",
+  "theme_color": "#7ec8ff",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

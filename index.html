@@ -9,9 +9,14 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Lane Rush 🚗</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=27" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=27" />
-  <link rel="stylesheet" href="style.css?v=27" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=28" />
+  <link rel="apple-touch-icon" href="icon-192.png?v=28" />
+  <link rel="manifest" href="manifest.json?v=28" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Lane Rush" />
+  <link rel="stylesheet" href="style.css?v=28" />
 </head>
 <body>
   <div id="game-wrap">
@@ -34,6 +39,9 @@
       <div id="hud-combo" class="hud-combo hidden">🔥 ×2</div>
     </div>
 
+    <!-- First-run coachmark: dismissed on the player's first lane change ever -->
+    <div id="swipe-hint" class="swipe-hint hidden"><span class="sh-arrow">👈</span> swipe to steer <span class="sh-arrow">👉</span></div>
+
     <!-- START SCREEN -->
     <div id="screen-start" class="screen dock">
       <div class="panel start-panel">
@@ -49,6 +57,7 @@
           <button id="mode-classic" class="mode-btn" aria-pressed="true">🏁 Classic</button>
         </div>
         <button id="play-btn" class="btn btn-big">▶ Play</button>
+        <button id="daily-btn" class="btn btn-3">🗓️ Daily Challenge</button>
         <button id="garage-btn" class="btn btn-2">🔧 Garage</button>
         <p class="hint">Swipe ⬅️ ➡️ &nbsp;·&nbsp; <b>← →</b> / <b>A D</b></p>
       </div>
@@ -78,9 +87,11 @@
         </div>
         <p class="coins-earned">🪙 +<span id="over-coins">0</span> coins this run</p>
         <p id="over-combo" class="combo-earned hidden">🔥 Best combo: <b><span id="over-combo-val">0</span>×</b> near-misses<span id="over-combo-rec" class="combo-rec hidden"> — 🏆 record!</span></p>
+        <p id="over-daily" class="daily-line hidden">🗓️ Daily best: 0</p>
         <div id="new-best" class="new-best hidden">🏆 New best!</div>
         <div id="over-scores" class="leaderboard"></div>
         <button id="again-btn" class="btn">↻ Play again</button>
+        <button id="share-btn" class="btn btn-share">📣 Share score</button>
         <button id="over-garage-btn" class="btn btn-2">🔧 Garage</button>
         <p class="hint">Swipe or tap to play again</p>
       </div>
@@ -125,11 +136,11 @@
   <script src="js/vendor/MaskPass.js"></script>
   <script src="js/vendor/UnrealBloomPass.js"></script>
   <!-- Load order: config -> audio -> engine (logic) -> renderer (3D) -> shop -> main -->
-  <script src="js/config.js?v=27"></script>
-  <script src="js/audio.js?v=27"></script>
-  <script src="js/engine.js?v=27"></script>
-  <script src="js/renderer.js?v=27"></script>
-  <script src="js/shop.js?v=27"></script>
-  <script src="js/main.js?v=27"></script>
+  <script src="js/config.js?v=28"></script>
+  <script src="js/audio.js?v=28"></script>
+  <script src="js/engine.js?v=28"></script>
+  <script src="js/renderer.js?v=28"></script>
+  <script src="js/shop.js?v=28"></script>
+  <script src="js/main.js?v=28"></script>
 </body>
 </html>
