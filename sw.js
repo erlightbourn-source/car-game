@@ -9,7 +9,7 @@
  *  - The cache name is bumped with each release; old caches are purged on
  *    activate. Same-origin only (matches the site's strict CSP).
  */
-const CACHE = "lane-rush-v30";
+const CACHE = "lane-rush-v31";
 const CORE = ["./", "./index.html"];
 
 self.addEventListener("install", (e) => {

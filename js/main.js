@@ -72,6 +72,12 @@
     $("start-best").textContent = Shop.best;
     $("start-coins").textContent = Shop.coins;
     $("start-combo").textContent = Shop.bestCombo;
+    // Daily-streak tile: only surfaces once a real streak (≥2 consecutive days)
+    // exists, so first-time/casual players keep the clean 3-stat row while
+    // returning players get an always-visible "don't break the streak" hook.
+    const streak = Shop.streakInfo().streak | 0;
+    $("start-streak").textContent = streak;
+    $("start-streak-tile").classList.toggle("hidden", streak < 2);
     reflectEasyMode();
   }
   // Push every equipped customization (paint, body design, lights, world) to the
