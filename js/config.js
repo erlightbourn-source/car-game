@@ -104,6 +104,7 @@ const CARS = [
   { id: "purple", name: "Grape",  price: 300, body: "#9b6cff", roof: "#b288ff", bumper: "#7f53db" },
   { id: "gold",   name: "Goldie", price: 450, body: "#ffcf3f", roof: "#ffe07a", bumper: "#e0ad1f" },
   { id: "galaxy", name: "Galaxy", price: 900, body: "#6a3fb0", roof: "#8b5fd6", bumper: "#3f2470" },
+  { id: "lava",   name: "Lava",   price: 1600, body: "#ff6a2a", roof: "#ff8d52", bumper: "#c94310" },
 ];
 
 // DESIGN — car body shape (drawn procedurally by the renderer per id).
@@ -124,6 +125,7 @@ const LIGHTS = [
   { id: "lime",   name: "Lime",    price: 120, color: 0x9bff5a, emissive: 0x6fdd2f },
   { id: "violet", name: "Violet",  price: 160, color: 0xc36bff, emissive: 0xa23cff },
   { id: "pearl",  name: "Pearl",   price: 220, color: 0xffffff, emissive: 0xfff2d0 },
+  { id: "rose",   name: "Rose",    price: 340, color: 0xff6bb8, emissive: 0xff3f9e },
 ];
 
 // BACKGROUND — the world/theme. Each carries lighting + colour parameters that
@@ -161,6 +163,10 @@ const BACKGROUNDS = [
     sky: [0x06112e, 0x123c57, 0x2bd49a], fog: 0x163a48, fogNear: 34, fogFar: 158,
     hemiSky: 0x6fe0bd, hemiGround: 0x10202a, hemiInt: 0.45,
     sun: 0xbfe6ff, sunInt: 0.95, sunDir: [0.4, 0.55, -0.6], grass: 0x254a3e, glow: "#7dffcf" },
+  { id: "volcano", name: "Volcano", price: 650,
+    sky: [0x1c1216, 0x4a1e18, 0xff7a3a], fog: 0x5a2a1e, fogNear: 36, fogFar: 160,
+    hemiSky: 0xff9a6a, hemiGround: 0x201014, hemiInt: 0.45,
+    sun: 0xff6a30, sunInt: 1.6, sunDir: [-0.6, 0.25, -0.6], grass: 0x3a2a28, glow: "#ffb066" },
 ];
 
 // Export for the headless playtest harness (Node). Browsers ignore this.
