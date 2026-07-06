@@ -95,7 +95,7 @@ const Shop = (() => {
     persist(); onChange();
     return { completed, comboRecord };
   }
-  const DESIGN_EMOJI = { hatch: "🚗", sport: "🏎️", pickup: "🛻", van: "🚐", classic: "🚙", roadster: "🚘" };
+  const DESIGN_EMOJI = { hatch: "🚗", sport: "🏎️", pickup: "🛻", van: "🚐", classic: "🚙", roadster: "🚘", muscle: "💪" };
 
   function load() {
     try {

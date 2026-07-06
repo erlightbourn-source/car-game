@@ -422,6 +422,25 @@ class Renderer {
       return;
     }
 
+    if (design === "muscle") {
+      // Long low body, fastback roofline, and a ducktail spoiler lip.
+      // (+X in the profile = REAR of the car; long hood runs from the nose to
+      // the cabin start.) Body-only — shares the standard wheels/footprint.
+      lb.moveTo(-2.0, 0.24); lb.lineTo(-2.0, 0.50);
+      lb.quadraticCurveTo(-1.92, 0.62, -1.5, 0.64); lb.lineTo(1.7, 0.64);
+      lb.quadraticCurveTo(1.95, 0.60, 2.0, 0.48); lb.lineTo(2.0, 0.24); lb.closePath();
+      gh.moveTo(-0.35, 0.62);
+      gh.quadraticCurveTo(-0.05, 1.02, 0.35, 1.05);
+      gh.lineTo(0.6, 1.05);
+      gh.quadraticCurveTo(1.15, 0.98, 1.5, 0.66);
+      gh.lineTo(1.55, 0.62); gh.closePath();
+      g.add(this._profileMesh(lb, 2.0, 0.10, bodyMat));
+      g.add(this._profileMesh(gh, 1.5, 0.05, glassMat));
+      const duck = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.09, 0.30), bodyMat);
+      duck.position.set(0, 0.70, 1.78); duck.castShadow = true; g.add(duck);
+      return;
+    }
+
     // default: hatch
     lb.moveTo(-1.95, 0.30); lb.lineTo(-1.95, 0.52);
     lb.quadraticCurveTo(-1.86, 0.66, -1.45, 0.70); lb.lineTo(1.5, 0.70);

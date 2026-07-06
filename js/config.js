@@ -115,6 +115,7 @@ const DESIGNS = [
   { id: "van",      name: "Van",      price: 320 },
   { id: "classic",  name: "Classic",  price: 360 },
   { id: "roadster", name: "Roadster", price: 440 },
+  { id: "muscle",   name: "Muscle",   price: 560 },
 ];
 
 // LIGHTS — taillight colour (base colour + emissive glow colour).
