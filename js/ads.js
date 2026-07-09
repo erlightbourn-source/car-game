@@ -16,17 +16,20 @@
  *   2. add the network's domain to the CSP (<meta> in index.html + _headers),
  *   3. ⚠ Lane Rush is played by young children — any real network MUST run in
  *      child-directed / non-personalized mode (COPPA + Google Play Families):
- *      no behavioral targeting, set tagForChildDirectedTreatment, and get legal
- *      sign-off. Do NOT ship a real network to this game without that.
+ *      no behavioral targeting, set tagForChildDirectedTreatment, use a certified
+ *      Families ad SDK, and get legal sign-off. Do NOT ship a real network here
+ *      without that. The simulated provider below is a DEV placeholder, not a
+ *      certified ad — do not present it to live child users as a real ad.
  *
- * The built-in "simulated" provider below is CSP-safe (pure in-page DOM, no
- * external request, zero data collection), so the whole reward flow ships and is
- * testable today with no third-party exposure. It is the safe default.
+ * The built-in "simulated" provider is CSP-safe (pure in-page DOM, no external
+ * request, zero data collection), so the whole reward flow ships and is testable
+ * today with no third-party exposure. It is the safe default.
  */
 (function () {
   "use strict";
 
   var cfg = { enabled: false, provider: "simulated", duration: 4 };
+  var showing = false;   // manager-level: is a rewarded ad currently on screen?
 
   // ── Simulated rewarded provider: an in-page overlay, no network ────────────
   var Simulated = {
@@ -42,19 +45,21 @@
       var ov = document.createElement("div");
       ov.className = "ad-overlay";
       ov.setAttribute("role", "dialog");
+      ov.setAttribute("aria-modal", "true");
       ov.setAttribute("aria-label", "Rewarded ad — watch to double your coins");
       ov.innerHTML =
         '<div class="ad-card">' +
-          '<span class="ad-flag">Ad</span>' +
+          '<span class="ad-flag">Ad · demo</span>' +
           '<button class="ad-close" aria-label="Close ad, no reward">✕</button>' +
           '<div class="ad-art">🎬</div>' +
-          '<div class="ad-title">Rewarded Ad</div>' +
+          '<div class="ad-title">Rewarded Ad (demo)</div>' +
           '<div class="ad-sub">Watch to double your coins</div>' +
           '<div class="ad-bar"><div class="ad-bar-fill"></div></div>' +
           '<div class="ad-count">Reward in <span class="ad-secs">' + secs + '</span>s</div>' +
         '</div>';
       // Keep taps inside the overlay from bubbling to the game-over screen
-      // (which would otherwise start a new run).
+      // (which would otherwise start a new run). Keyboard is gated separately
+      // by the game (Ads.isShowing) plus the Escape handler below.
       ov.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
       ov.addEventListener("click", function (e) { e.stopPropagation(); });
       document.body.appendChild(ov);
@@ -63,10 +68,22 @@
       var secsEl = ov.querySelector(".ad-secs");
       var closeBtn = ov.querySelector(".ad-close");
 
-      function cleanup() { if (ov.parentNode) ov.parentNode.removeChild(ov); self._busy = false; }
-      function finishReward() { if (done) return; done = true; clearInterval(timer); cleanup(); if (onReward) onReward(); }
-      function forfeit() { if (done) return; done = true; clearInterval(timer); cleanup(); if (onClose) onClose(); }
+      // Escape forfeits (no reward). Capture-phase so it wins regardless of the
+      // game's own key handlers, which are gated off while an ad is showing.
+      function onKey(e) { if (e.key === "Escape" || e.code === "Escape") { e.stopPropagation(); e.preventDefault(); forfeit(); } }
+      document.addEventListener("keydown", onKey, true);
+
+      function cleanup() {
+        clearInterval(timer);
+        document.removeEventListener("keydown", onKey, true);
+        if (ov.parentNode) ov.parentNode.removeChild(ov);
+        self._busy = false;
+      }
+      function finishReward() { if (done) return; done = true; cleanup(); if (onReward) onReward(); }
+      function forfeit() { if (done) return; done = true; cleanup(); if (onClose) onClose(); }
       closeBtn.addEventListener("click", forfeit);
+      // Move focus into the modal so keyboard users land on the dismiss control.
+      try { closeBtn.focus(); } catch (e) {}
 
       // Animate the progress bar to full over the whole duration.
       requestAnimationFrame(function () {
@@ -96,12 +113,19 @@
       var p = PROVIDERS[cfg.provider];
       return cfg.enabled && !!p && p.isReady();
     },
+    // True while a rewarded ad is on screen — the game gates its input on this so
+    // a keypress/tap can't start a run behind the overlay.
+    isShowing: function () { return showing; },
     // onReward fires ONLY on full completion; onClose on skip / forfeit / when no
     // ad is available. Callers must credit the reward from onReward only.
     showRewarded: function (onReward, onClose) {
       var p = PROVIDERS[cfg.provider];
       if (!cfg.enabled || !p || !p.isReady()) { if (onClose) onClose(); return; }
-      p.show(onReward, onClose);
+      showing = true;
+      p.show(
+        function () { showing = false; if (onReward) onReward(); },
+        function () { showing = false; if (onClose) onClose(); }
+      );
     }
   };
 })();

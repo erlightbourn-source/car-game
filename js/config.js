@@ -95,7 +95,11 @@ const CONFIG = {
   //     Player CHOOSES to watch on the game-over screen; gameplay is never gated.
   //     Ships with the CSP-safe simulated provider (js/ads.js); see that file's
   //     seam + the child-audience/COPPA note before wiring a real ad network.
-  ADS_ENABLED: true,          // master switch for the rewarded reward
+  // Default OFF for production safety: with it on, the built-in SIMULATED ad
+  // (a demo placeholder, not a certified ad) would show to live child players.
+  // The feature is fully built + verified; flip to true only after wiring a
+  // COPPA/Families-compliant real provider (or to demo the flow locally).
+  ADS_ENABLED: false,         // master switch for the rewarded reward
   REWARD_MULTIPLIER: 2,       // watch to completion → this run's coins ×2
   ADS_MIN_COINS: 1,           // only offer when the run actually earned coins
   ADS_PROVIDER: "simulated",  // "simulated" (built-in, CSP-safe) | real SDK via js/ads.js

@@ -182,7 +182,7 @@
   }
 
   function steer(dir) {
-    if (ui === "shop") return;
+    if (ui === "shop" || Ads.isShowing()) return;
     Sfx.unlock();
     if (engine.state === "ready") beginGame(dailyMode);
     else if (engine.state === "playing") {
@@ -202,7 +202,7 @@
     else if (engine.state === "dead" && performance.now() - deadAt > 350) beginGame(dailyMode);
   }
   function confirmAction() {
-    if (ui === "shop") return;
+    if (ui === "shop" || Ads.isShowing()) return;
     Sfx.unlock();
     if (engine.state === "ready") beginGame(dailyMode);
     else if (engine.state === "dead" && performance.now() - deadAt > 350) beginGame(dailyMode);
@@ -253,12 +253,13 @@
   $("over-double-btn").addEventListener("click", (e) => {
     e.stopPropagation(); Sfx.unlock();
     if (doubledThisRun || engine.runCoins < CONFIG.ADS_MIN_COINS) return;
+    const earned = engine.runCoins;              // snapshot THIS run's coins — the reward is for them,
+                                                 // not whatever engine.runCoins holds when the ad ends
     $("over-double-btn").disabled = true;
     Ads.showRewarded(() => {
-      const bonus = engine.runCoins * (CONFIG.REWARD_MULTIPLIER - 1);   // run coins already banked once
-      Shop.addCoins(bonus);                                            // credits + persists + refreshes labels
+      Shop.addCoins(earned * (CONFIG.REWARD_MULTIPLIER - 1));  // run coins already banked once; add the rest
       doubledThisRun = true;
-      $("over-coins").textContent = engine.runCoins * CONFIG.REWARD_MULTIPLIER;
+      $("over-coins").textContent = earned * CONFIG.REWARD_MULTIPLIER;
       $("over-double-btn").classList.add("hidden");
       $("over-doubled").classList.remove("hidden");
       Sfx.coin();
@@ -311,6 +312,7 @@
 
   // --- Input: keyboard -----------------------------------------------------
   window.addEventListener("keydown", (e) => {
+    if (Ads.isShowing()) return;   // a rewarded ad owns input; Escape is handled by the overlay
     switch (e.code) {
       case "ArrowLeft": case "KeyA":  e.preventDefault(); if (ui === "shop") Shop.cycleDesign(-1); else steer(-1); break;
       case "ArrowRight": case "KeyD": e.preventDefault(); if (ui === "shop") Shop.cycleDesign(1); else steer(1); break;
