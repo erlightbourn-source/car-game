@@ -9,14 +9,14 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Lane Rush 🚗</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=34" />
-  <link rel="apple-touch-icon" href="icon-192.png?v=34" />
-  <link rel="manifest" href="manifest.json?v=34" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=35" />
+  <link rel="apple-touch-icon" href="icon-192.png?v=35" />
+  <link rel="manifest" href="manifest.json?v=35" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Lane Rush" />
-  <link rel="stylesheet" href="style.css?v=34" />
+  <link rel="stylesheet" href="style.css?v=35" />
 </head>
 <body>
   <div id="game-wrap">
@@ -87,6 +87,8 @@
           <div><span class="score-label">Best</span><span id="over-best" class="score-val">0</span></div>
         </div>
         <p class="coins-earned">🪙 +<span id="over-coins">0</span> coins this run</p>
+        <button id="over-double-btn" class="btn btn-reward hidden">📺 Double your coins</button>
+        <p id="over-doubled" class="coins-doubled hidden">🎉 Coins doubled!</p>
         <p id="over-combo" class="combo-earned hidden">🔥 Best combo: <b><span id="over-combo-val">0</span>×</b> near-misses<span id="over-combo-rec" class="combo-rec hidden"> — 🏆 record!</span></p>
         <p id="over-daily" class="daily-line hidden">🗓️ Daily best: 0</p>
         <div id="new-best" class="new-best hidden">🏆 New best!</div>
@@ -137,11 +139,12 @@
   <script src="js/vendor/MaskPass.js"></script>
   <script src="js/vendor/UnrealBloomPass.js"></script>
   <!-- Load order: config -> audio -> engine (logic) -> renderer (3D) -> shop -> main -->
-  <script src="js/config.js?v=34"></script>
-  <script src="js/audio.js?v=34"></script>
-  <script src="js/engine.js?v=34"></script>
-  <script src="js/renderer.js?v=34"></script>
-  <script src="js/shop.js?v=34"></script>
-  <script src="js/main.js?v=34"></script>
+  <script src="js/config.js?v=35"></script>
+  <script src="js/audio.js?v=35"></script>
+  <script src="js/engine.js?v=35"></script>
+  <script src="js/renderer.js?v=35"></script>
+  <script src="js/shop.js?v=35"></script>
+  <script src="js/ads.js?v=35"></script>
+  <script src="js/main.js?v=35"></script>
 </body>
 </html>

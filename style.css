@@ -130,6 +130,51 @@ h1 {
 }
 .btn-share:active { box-shadow: 0 2px 0 #2da872; }
 
+/* Rewarded "double your coins" CTA — gold to read as a coin reward, prominent
+   but never blocking (Play again stays the primary action below it). */
+.btn-reward {
+  background: #ffb200;
+  box-shadow: 0 6px 0 #d18a00;
+  font-size: 18px;
+  padding: 12px 26px;
+}
+.btn-reward:active { box-shadow: 0 2px 0 #d18a00; }
+.btn-reward:disabled { opacity: 0.6; cursor: default; }
+.coins-doubled { font-size: 16px; font-weight: bold; color: #2da872; margin: 4px 0 8px; }
+
+/* Simulated rewarded-ad overlay (CSS-only, no network). A real ad SDK would
+   render its own view; this stands in so the flow ships and is testable. */
+.ad-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(8, 14, 26, 0.82);
+  animation: ad-fade 0.15s ease-out;
+}
+@keyframes ad-fade { from { opacity: 0; } to { opacity: 1; } }
+.ad-card {
+  position: relative;
+  width: min(86vw, 320px);
+  background: #142033; color: #fff;
+  border-radius: 18px; padding: 26px 20px 22px;
+  text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+.ad-flag {
+  position: absolute; top: 10px; left: 12px;
+  font-size: 10px; font-weight: bold; letter-spacing: 0.05em;
+  color: #0b1220; background: #ffd23f; border-radius: 5px; padding: 1px 6px;
+}
+.ad-close {
+  position: absolute; top: 8px; right: 10px;
+  width: 30px; height: 30px; border: none; border-radius: 50%;
+  background: rgba(255,255,255,0.14); color: #fff; font-size: 16px; cursor: pointer;
+}
+.ad-art { font-size: 52px; line-height: 1.1; margin-top: 6px; }
+.ad-title { font-size: 20px; font-weight: bold; margin-top: 6px; }
+.ad-sub { font-size: 14px; color: #b9c4d6; margin-top: 2px; }
+.ad-bar { height: 8px; background: rgba(255,255,255,0.16); border-radius: 6px; overflow: hidden; margin: 16px 0 8px; }
+.ad-bar-fill { height: 100%; width: 0; background: #ffb200; border-radius: 6px; }
+.ad-count { font-size: 13px; color: #b9c4d6; }
+
 /* Bottom-docked menu screens so the showcased spinning car shows clearly above. */
 .screen.dock { align-items: flex-end; }
 .screen.dock .panel { margin-bottom: 14px; animation: slideup 0.32s cubic-bezier(0.2, 1, 0.4, 1) both; }
