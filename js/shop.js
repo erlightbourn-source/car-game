@@ -254,9 +254,14 @@ const Shop = (() => {
       else if (cat === "bg") vis = `<span class="chip" style="background:linear-gradient(160deg,${hex(item.sky[0])},${hex(item.sky[2])} 70%,${hex(item.grass)})"></span>`;
       else vis = `<span class="emoji">${DESIGN_EMOJI[item.id] || "🚗"}</span>`;
 
+      const need = item.price - data.coins;
+      const locked = !owned && need > 0;
       el.innerHTML = vis +
         `<span class="item-name">${item.name}</span>` +
-        `<span class="item-tag">${equipped ? "Equipped" : owned ? "Select" : "🪙 " + item.price}</span>`;
+        `<span class="item-tag">${equipped ? "Equipped" : owned ? "Select" : "🪙 " + item.price}</span>` +
+        // Show how close you are so an unaffordable item reads as a goal, not a wall.
+        (locked ? `<span class="item-need">🪙 ${need} to go</span>` : "");
+      if (locked) el.title = `${item.name} costs ${item.price} coins — ${need} more to go`;
       el.addEventListener("click", () => buyOrEquip(cat, item.id));
       grid.appendChild(el);
     }

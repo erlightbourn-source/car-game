@@ -441,6 +441,7 @@ h1 {
 .item-name { font-size: 13px; font-weight: bold; color: #2c3e50; }
 .item-tag { font-size: 12px; font-weight: bold; color: #5a6b7a; background: #fff; border-radius: 8px; padding: 1px 7px; }
 .item.equipped .item-tag { color: #fff; background: #2c3e50; }
+.item-need { font-size: 10px; font-weight: bold; color: #c07a2c; margin-top: -1px; }
 
 /* ---------- Toasts (daily bonus, unlocks) ---------- */
 .toast {
