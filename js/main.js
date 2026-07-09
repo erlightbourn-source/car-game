@@ -95,6 +95,7 @@
     onSelect: applyCustomization,
     onUnlock: (name) => { showToast("🔓 " + name + " unlocked!"); Sfx.unlock_sfx(); },
   });
+  Ads.init({ enabled: CONFIG.ADS_ENABLED, provider: CONFIG.ADS_PROVIDER, duration: CONFIG.ADS_DURATION });
   engine.best = Shop.best;
   applyCustomization();
   // Daily login bonus (after a short beat so it's noticed on the start screen).
@@ -128,6 +129,14 @@
     $("over-score").textContent = engine.score;
     $("over-best").textContent = engine.best;
     $("over-coins").textContent = engine.runCoins;
+    // Rewarded "double your coins": offer only when enabled, an ad is ready, the
+    // run actually earned coins, and they haven't already doubled this run.
+    const dbtn = $("over-double-btn");
+    dbtn.disabled = false;
+    const canDouble = CONFIG.ADS_ENABLED && engine.runCoins >= CONFIG.ADS_MIN_COINS
+                      && !doubledThisRun && Ads.isRewardedReady();
+    dbtn.classList.toggle("hidden", !canDouble);
+    $("over-doubled").classList.toggle("hidden", !doubledThisRun);
     // Celebrate skill: show the best near-miss combo, but only if they built one (>=2).
     const bc = engine.bestCombo | 0;
     $("over-combo-val").textContent = bc;
@@ -149,6 +158,7 @@
   // --- Actions -------------------------------------------------------------
   let dailyMode = false;          // current run is the seeded Daily Challenge
   let lastDaily = null;           // {best, isBest} from the last daily run, for the over screen
+  let doubledThisRun = false;     // rewarded "double your coins" claimed for this run (one per run)
   let steeredEver = false;        // has the player ever changed lanes? (drives the first-run hint)
   try { steeredEver = !!localStorage.getItem("lr_steered"); } catch (e) {}
 
@@ -159,6 +169,7 @@
     dailyMode = !!daily;
     sawNewBest = false;
     sawComboRecord = false;
+    doubledThisRun = false;
     engine.upgrades = Shop.upgrades;       // apply purchased perks for this run
     engine.best = Shop.best;
     engine.assist = dailyMode ? false : easyMode;   // Daily is always Classic so scores compare fairly
@@ -237,6 +248,24 @@
   $("again-btn").addEventListener("click", (e) => { e.stopPropagation(); if (engine.state === "dead") beginGame(dailyMode); });
   $("garage-btn").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); showShop(); });
   $("over-garage-btn").addEventListener("click", (e) => { e.stopPropagation(); Sfx.unlock(); showShop(); });
+  // Rewarded "double your coins" — opt-in, one per run. Credit only from the
+  // reward callback (i.e. only after the ad is watched to completion).
+  $("over-double-btn").addEventListener("click", (e) => {
+    e.stopPropagation(); Sfx.unlock();
+    if (doubledThisRun || engine.runCoins < CONFIG.ADS_MIN_COINS) return;
+    $("over-double-btn").disabled = true;
+    Ads.showRewarded(() => {
+      const bonus = engine.runCoins * (CONFIG.REWARD_MULTIPLIER - 1);   // run coins already banked once
+      Shop.addCoins(bonus);                                            // credits + persists + refreshes labels
+      doubledThisRun = true;
+      $("over-coins").textContent = engine.runCoins * CONFIG.REWARD_MULTIPLIER;
+      $("over-double-btn").classList.add("hidden");
+      $("over-doubled").classList.remove("hidden");
+      Sfx.coin();
+    }, () => {
+      $("over-double-btn").disabled = false;   // closed/skipped without watching — allow another try
+    });
+  });
   $("share-btn").addEventListener("click", async (e) => {
     e.stopPropagation();
     const url = "https://erlightbourn-source.github.io/car-game/";
