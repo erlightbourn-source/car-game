@@ -182,6 +182,10 @@ const BACKGROUNDS = [
     sky: [0x1c1216, 0x4a1e18, 0xff7a3a], fog: 0x5a2a1e, fogNear: 36, fogFar: 160,
     hemiSky: 0xff9a6a, hemiGround: 0x201014, hemiInt: 0.45,
     sun: 0xff6a30, sunInt: 1.6, sunDir: [-0.6, 0.25, -0.6], grass: 0x3a2a28, glow: "#ffb066" },
+  { id: "cosmos", name: "Cosmos", price: 820,
+    sky: [0x05030f, 0x241a5c, 0x7b3fa0], fog: 0x1a1436, fogNear: 32, fogFar: 150,
+    hemiSky: 0x6b5fd6, hemiGround: 0x0c0a1a, hemiInt: 0.42,
+    sun: 0xbfc8ff, sunInt: 0.9, sunDir: [0.35, 0.55, -0.6], grass: 0x241f3a, glow: "#c9b8ff" },
 ];
 
 // Export for the headless playtest harness (Node). Browsers ignore this.
