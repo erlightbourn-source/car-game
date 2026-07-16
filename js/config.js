@@ -141,6 +141,7 @@ const LIGHTS = [
   { id: "violet", name: "Violet",  price: 160, color: 0xc36bff, emissive: 0xa23cff },
   { id: "pearl",  name: "Pearl",   price: 220, color: 0xffffff, emissive: 0xfff2d0 },
   { id: "rose",   name: "Rose",    price: 340, color: 0xff6bb8, emissive: 0xff3f9e },
+  { id: "plasma", name: "Plasma",  price: 760, color: 0x2dffcf, emissive: 0x00e6b8 },
 ];
 
 // BACKGROUND — the world/theme. Each carries lighting + colour parameters that
