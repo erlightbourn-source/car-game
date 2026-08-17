@@ -284,6 +284,7 @@ h1 {
 .combo-earned b { color: var(--accent-dark); }
 .combo-rec { font-weight: bold; color: #f5a623; }
 .daily-line { font-size: 14px; font-weight: bold; color: #8e7bd8; margin: 0 0 6px; }
+.crash-cause { font-size: 13px; color: var(--text); opacity: 0.65; margin: 0 0 8px; }
 
 /* First-run swipe coachmark (overlay during play) */
 .swipe-hint {

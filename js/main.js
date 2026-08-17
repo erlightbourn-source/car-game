@@ -5,6 +5,14 @@
  * and renderer stay portable.
  */
 (function () {
+  // Friendly, kid-readable game-over labels per crash cause (engine.lastCrashType).
+  // Potholes never appear here — they're a soft hazard that doesn't end the run.
+  const CRASH_CAUSE_LABELS = {
+    cone: "🚧 A cone got you — steer around them!",
+    barrier: "🚧 Blocked by a barrier!",
+    car: "🚗 Bumped into a car!",
+  };
+
   const canvas = document.getElementById("game");
   const engine = new GameEngine(CONFIG);
 
@@ -129,6 +137,12 @@
     $("over-score").textContent = engine.score;
     $("over-best").textContent = engine.best;
     $("over-coins").textContent = engine.runCoins;
+    // Crash-cause line: tells the player what got them, so they can read the road
+    // better next run (kid-friendly clarity — genre-standard on 2026 post-run screens).
+    const causeEl = $("over-cause");
+    const causeLabel = CRASH_CAUSE_LABELS[engine.lastCrashType];
+    causeEl.textContent = causeLabel || "";
+    causeEl.classList.toggle("hidden", !causeLabel);
     // Rewarded "double your coins": offer only when enabled, an ad is ready, the
     // run actually earned coins, and they haven't already doubled this run.
     const dbtn = $("over-double-btn");

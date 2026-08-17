@@ -62,6 +62,7 @@ class GameEngine {
     this.combo = 0;                // consecutive near-miss dodges (risk/reward)
     this.bestCombo = 0;            // best combo this run (for missions)
     this.nearMisses = 0;           // total near-misses this run (for missions)
+    this.lastCrashType = null;     // obstacle type that ended the run ("cone"|"barrier"|"car"), for the game-over screen
     this.distance = 0;             // cosmetic odometer (world units)
     this.speed = c.START_SPEED;
     this.shields = this.upgrades.shield | 0;
@@ -203,10 +204,11 @@ class GameEngine {
     this.powerups.push({ lane, frac: c.LANES[lane], z: c.FAR_Z, collected: false, type });
   }
 
-  _die() {
+  _die(cause) {
     if (this.state === "dead") return;
     this.state = "dead";
     this.combo = 0;
+    this.lastCrashType = cause || null;
     if (this.score > this.best) {
       this.best = this.score;
       this.events.push({ type: "newbest" });
@@ -371,7 +373,7 @@ class GameEngine {
           o.z = -20;
           this.events.push({ type: "shieldhit", shields: this.shields });
         } else {
-          this._die();
+          this._die(o.type);
           return this.events;
         }
       } else {
